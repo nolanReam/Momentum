@@ -177,15 +177,15 @@ export function AppShell({ onLogout }: AppShellProps) {
             className="min-h-screen gradient-calm"
           >
             {/* Header */}
-            <header className="sticky top-0 z-40 glass-strong border-b">
+            <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-black/[0.04]">
               <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <img
-                    src="/momentum.svg"
+                    src="/momentum.png"
                     alt="Momentum"
-                    className="w-7 h-7 hover:scale-110 transition-transform duration-300"
+                    className="w-7 h-7 rounded-lg hover:scale-105 transition-transform duration-300"
                   />
-                  <span className="font-bold text-lg text-gradient">Momentum</span>
+                  <span className="font-semibold text-[15px]">Momentum</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button

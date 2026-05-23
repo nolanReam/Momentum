@@ -63,9 +63,9 @@ export function EmotionalCheckin({ onComplete, onSkip }: EmotionalCheckinProps) 
       animate={{ opacity: 1, scale: 1 }}
       className="w-full max-w-lg mx-auto"
     >
-      <div className="glass-strong rounded-2xl p-8 shadow-glow">
+      <div className="bg-white rounded-2xl p-8 border border-black/[0.06] shadow-glow">
         <div className="text-center mb-6">
-          <img src="/momentum.svg" alt="" className="w-10 h-10 mx-auto mb-3" />
+          <img src="/momentum.png" alt="" className="w-9 h-9 mx-auto mb-3 rounded-lg" />
           <h2 className="text-xl font-bold">How are you feeling?</h2>
           <p className="text-sm text-muted-foreground mt-1">
             This helps me adapt. No judgment here.

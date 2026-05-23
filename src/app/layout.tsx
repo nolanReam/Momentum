@@ -9,8 +9,8 @@ export const metadata: Metadata = {
   description:
     "AI-powered emotional support for students who procrastinate. Break overwhelming tasks into manageable steps, build momentum, and finally start.",
   icons: {
-    icon: "/momentum.svg",
-    apple: "/momentum.svg",
+    icon: "/momentum.png",
+    apple: "/momentum.png",
   },
 };
 

@@ -57,13 +57,15 @@ export default function Home() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center gradient-calm">
-        <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col items-center gap-5">
           <img
-            src="/momentum.svg"
+            src="/momentum.png"
             alt="Momentum"
-            className="w-16 h-16 animate-float"
+            className="w-14 h-14 rounded-2xl shadow-warm animate-pulse"
           />
-          <div className="h-1 w-24 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 animate-shimmer bg-[length:200%_100%]" />
+          <div className="h-1 w-20 rounded-full bg-primary/20 overflow-hidden">
+            <div className="h-full w-1/2 rounded-full bg-primary/60 animate-[shimmer_1.5s_ease-in-out_infinite]" />
+          </div>
         </div>
       </div>
     );

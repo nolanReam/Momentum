@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, Brain, Heart, Zap, Target, Timer, Shield } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface LandingPageProps {
@@ -9,318 +9,283 @@ interface LandingPageProps {
   onSignIn: () => void;
 }
 
-const features = [
+const stories = [
   {
-    icon: Brain,
-    title: "AI Task Breakdown",
-    description: "Turn overwhelming assignments into small, actionable steps you can actually start.",
+    text: "I kept opening my laptop and just... staring. I knew I had to study but couldn\u2019t make myself start. Momentum broke it into tiny pieces and suddenly I was 20 minutes in.",
+    name: "Maya",
+    detail: "Sophomore, Biology",
   },
   {
-    icon: Heart,
-    title: "Emotional Intelligence",
-    description: "Adapts to your mood. Anxious? Smaller steps. Energized? Deeper work.",
+    text: "I had a paper due in 8 hours and I hadn\u2019t started. Panic Mode gave me a real plan instead of just more anxiety. I actually submitted something I\u2019m proud of.",
+    name: "Jordan",
+    detail: "Junior, English",
   },
   {
-    icon: Timer,
-    title: "Focus Mode",
-    description: "Immersive, distraction-free sessions. One step at a time.",
-  },
-  {
-    icon: Shield,
-    title: "Panic Mode",
-    description: "Deadline tomorrow? Get a realistic emergency recovery plan.",
-  },
-  {
-    icon: Zap,
-    title: "Build Momentum",
-    description: "XP, streaks, and levels. Celebrate every small win.",
-  },
-  {
-    icon: Target,
-    title: "You Stay in Control",
-    description: "We help you plan and start. We never do the work for you.",
+    text: "It doesn\u2019t yell at me to be productive. It just quietly asks how I\u2019m feeling and then gives me something I can actually do. That\u2019s what I needed.",
+    name: "Sam",
+    detail: "Freshman, CS",
   },
 ];
 
-const testimonials = [
-  {
-    quote: "I went from staring at my laptop for 3 hours to actually finishing my essay outline in 20 minutes.",
-    name: "Maya, Sophomore",
-  },
-  {
-    quote: "The panic mode saved my grade. It helped me figure out what was actually possible before my deadline.",
-    name: "Jordan, Junior",
-  },
-  {
-    quote: "It doesn't feel like a productivity app. It feels like having a supportive friend who gets it.",
-    name: "Alex, Freshman",
-  },
+const capabilities = [
+  "Breaks overwhelming tasks into 5-minute starting points",
+  "Adapts to your energy \u2014 tired days get gentler steps",
+  "Panic Mode for deadline emergencies",
+  "Never does your work \u2014 helps you start it yourself",
 ];
 
 export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
   return (
-    <div className="min-h-screen overflow-hidden">
+    <div className="min-h-screen overflow-hidden bg-[#faf9ff]">
       {/* Navbar */}
-      <nav className="fixed top-0 w-full z-50 glass-strong">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <nav className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl border-b border-black/[0.04]">
+        <div className="max-w-5xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <motion.div
             className="flex items-center gap-2.5"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6 }}
           >
             <img
-              src="/momentum.svg"
+              src="/momentum.png"
               alt="Momentum"
-              className="w-8 h-8 hover:scale-110 transition-transform duration-300"
+              className="w-8 h-8 rounded-lg hover:scale-105 transition-transform duration-300"
             />
-            <span className="font-bold text-lg text-gradient">Momentum</span>
+            <span className="font-semibold text-[15px] text-foreground">Momentum</span>
           </motion.div>
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
           >
-            <Button variant="ghost" onClick={onSignIn} className="text-sm">
-              Sign In
+            <Button variant="ghost" onClick={onSignIn} className="text-sm text-muted-foreground">
+              Sign in
             </Button>
           </motion.div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-6 pt-20">
-        {/* Animated gradient background */}
-        <div className="absolute inset-0 animated-gradient opacity-[0.03]" />
-        <div className="absolute inset-0 gradient-calm" />
+      {/* Hero */}
+      <section className="relative min-h-[92vh] flex items-center justify-center px-6 pt-16">
+        {/* Soft ambient light */}
+        <div className="absolute top-[20%] left-[15%] w-[400px] h-[400px] rounded-full bg-purple-200/20 blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-[20%] right-[15%] w-[350px] h-[350px] rounded-full bg-teal-200/15 blur-[100px] pointer-events-none" />
 
-        {/* Floating decorative elements */}
-        <motion.div
-          className="absolute top-1/4 left-[10%] w-64 h-64 rounded-full bg-purple-400/10 blur-3xl"
-          animate={{ y: [0, -20, 0], x: [0, 10, 0] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute bottom-1/4 right-[10%] w-80 h-80 rounded-full bg-cyan-400/10 blur-3xl"
-          animate={{ y: [0, 20, 0], x: [0, -10, 0] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute top-1/3 right-[25%] w-40 h-40 rounded-full bg-amber-400/5 blur-3xl"
-          animate={{ y: [0, 15, 0] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        />
-
-        <div className="relative z-10 max-w-4xl mx-auto text-center">
+        <div className="relative z-10 max-w-3xl mx-auto text-center">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           >
-            {/* Badge */}
-            <motion.div
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full glass mb-8 text-sm text-muted-foreground"
-              initial={{ opacity: 0, scale: 0.9 }}
+            {/* Logo mark */}
+            <motion.img
+              src="/momentum.png"
+              alt=""
+              className="w-14 h-14 mx-auto mb-8 rounded-2xl shadow-warm"
+              initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Sparkles className="h-3.5 w-3.5 text-purple-500" />
-              AI-powered study companion
-            </motion.div>
+              transition={{ delay: 0.2, duration: 0.5, type: "spring", stiffness: 200 }}
+            />
 
-            {/* Headline */}
-            <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight mb-6">
-              <span className="text-gradient">Start</span> before{" "}
-              <br className="hidden sm:block" />
-              you&apos;re ready.
+            {/* Emotional headline */}
+            <h1 className="text-[2.75rem] sm:text-[3.5rem] md:text-[4rem] font-bold tracking-tight leading-[1.08] mb-6">
+              You know you should start.
+              <br />
+              <span className="text-gradient">Let&apos;s make that easier.</span>
             </h1>
 
-            {/* Subheadline */}
-            <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-              Momentum helps students overcome the emotional barrier to starting.
-              Not by pushing harder — by making the first step feel{" "}
-              <span className="text-foreground font-medium">manageable</span>.
+            {/* Real emotional subtext */}
+            <p className="text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed font-light">
+              Momentum is for students who stare at assignments and feel paralyzed.
+              It breaks the starting barrier with AI that understands <em>how you feel</em>, not just what&apos;s due.
             </p>
 
             {/* CTA */}
             <motion.div
-              className="flex flex-col sm:flex-row items-center justify-center gap-4"
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.4, duration: 0.5 }}
+              className="flex flex-col items-center gap-3"
             >
               <Button
                 size="lg"
                 onClick={onGetStarted}
-                className="text-base px-8 py-6 rounded-xl shadow-glow gradient-primary hover:opacity-90 transition-opacity gap-2"
+                className="text-[15px] px-8 py-6 rounded-2xl gradient-primary text-white shadow-glow-lg hover:shadow-glow transition-shadow duration-300 gap-2.5 font-medium"
               >
-                Get Started — it&apos;s free
+                Start — it takes 30 seconds
                 <ArrowRight className="h-4 w-4" />
               </Button>
-              <p className="text-xs text-muted-foreground">
-                No account needed. Start in 30 seconds.
+              <p className="text-xs text-muted-foreground/70">
+                No account required. No credit card. Just start.
               </p>
             </motion.div>
           </motion.div>
 
-          {/* Interactive demo preview */}
+          {/* Demo card */}
           <motion.div
-            className="mt-16 relative"
-            initial={{ opacity: 0, y: 40 }}
+            className="mt-20"
+            initial={{ opacity: 0, y: 32 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.8 }}
+            transition={{ delay: 0.7, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="glass rounded-2xl p-6 shadow-glow-lg max-w-lg mx-auto">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-3 h-3 rounded-full bg-red-400" />
-                <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                <div className="w-3 h-3 rounded-full bg-green-400" />
+            <div className="bg-white rounded-2xl border border-black/[0.06] p-6 sm:p-8 shadow-glow-lg max-w-md mx-auto text-left">
+              <div className="flex items-center gap-2.5 mb-5">
+                <img src="/momentum.png" alt="" className="w-6 h-6 rounded-md" />
+                <span className="text-xs font-medium text-muted-foreground">Momentum AI</span>
               </div>
-              <div className="text-left space-y-3">
-                <p className="text-sm text-muted-foreground">What do you need to do?</p>
-                <div className="glass rounded-lg px-4 py-3 text-sm font-medium">
-                  Study for chemistry final
-                </div>
-                <motion.div
-                  className="space-y-2 pt-2"
+              <p className="text-sm text-muted-foreground mb-3">I need to study for my chemistry final but I can&apos;t start...</p>
+              <div className="bg-[#f8f7ff] rounded-xl p-4 space-y-3">
+                <p className="text-xs font-medium text-foreground/70 mb-2">
+                  Let&apos;s make this manageable. Start here:
+                </p>
+                {[
+                  { step: "Open your notes and read just one page", time: "3 min" },
+                  { step: "Write 3 things you already know", time: "5 min" },
+                  { step: "Try one easy practice problem", time: "8 min" },
+                ].map((item, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 1.2 + i * 0.25 }}
+                    className="flex items-center justify-between gap-3"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <span className="text-[10px] font-bold text-primary">{i + 1}</span>
+                      </div>
+                      <span className="text-[13px] text-foreground/80">{item.step}</span>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground/60 flex-shrink-0">{item.time}</span>
+                  </motion.div>
+                ))}
+                <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 1.5 }}
+                  transition={{ delay: 2.2 }}
+                  className="text-[11px] text-primary/60 pt-1 italic"
                 >
-                  <p className="text-xs text-purple-600 font-medium flex items-center gap-1">
-                    <Sparkles className="h-3 w-3" /> Here&apos;s your game plan:
-                  </p>
-                  {["Review Chapter 5 flashcards (5 min)", "Summarize one section in your words (10 min)", "Practice 3 easy problems (15 min)"].map((step, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 1.8 + i * 0.2 }}
-                      className="flex items-center gap-2 text-xs text-muted-foreground"
-                    >
-                      <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
-                        {i + 1}
-                      </div>
-                      {step}
-                    </motion.div>
-                  ))}
-                </motion.div>
+                  You don&apos;t need to finish. Just start step 1.
+                </motion.p>
               </div>
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Features Grid */}
-      <section className="relative py-24 px-6">
-        <div className="max-w-6xl mx-auto">
+      {/* What it does — not a feature grid, a feeling */}
+      <section className="py-24 px-6">
+        <div className="max-w-3xl mx-auto">
           <motion.div
-            className="text-center mb-16"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
+            className="text-center mb-14"
           >
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Built for how students <span className="text-gradient">actually</span> work
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3">
+              Not productivity. <span className="text-gradient">Permission to start small.</span>
             </h2>
-            <p className="text-muted-foreground max-w-lg mx-auto">
-              Not another productivity app. Momentum understands the psychology of procrastination.
+            <p className="text-muted-foreground max-w-md mx-auto text-[15px]">
+              Momentum doesn&apos;t push you to do more. It helps you do the first thing.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature, i) => (
+          <div className="space-y-4 max-w-lg mx-auto">
+            {capabilities.map((item, i) => (
               <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
+                key={i}
+                initial={{ opacity: 0, x: -12 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.08 }}
+                className="flex items-start gap-3 p-4 rounded-xl bg-white border border-black/[0.04] shadow-sm"
+              >
+                <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Check className="h-3 w-3 text-primary" />
+                </div>
+                <span className="text-[14px] text-foreground/80 leading-relaxed">{item}</span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Student stories — real, emotional */}
+      <section className="py-24 px-6 bg-white/50">
+        <div className="max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-14"
+          >
+            <h2 className="text-2xl sm:text-3xl font-bold mb-3">
+              From stuck to started
+            </h2>
+            <p className="text-muted-foreground text-[15px]">
+              Students who know the feeling.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {stories.map((story, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 16 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="glass rounded-2xl p-6 hover:shadow-glow transition-all duration-300 group"
+                className="bg-white rounded-2xl border border-black/[0.05] p-6 shadow-sm hover:shadow-warm transition-shadow duration-300"
               >
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <feature.icon className="h-5 w-5 text-primary" />
+                <p className="text-[13.5px] leading-relaxed text-foreground/70 mb-5">
+                  &ldquo;{story.text}&rdquo;
+                </p>
+                <div>
+                  <p className="text-sm font-medium">{story.name}</p>
+                  <p className="text-xs text-muted-foreground">{story.detail}</p>
                 </div>
-                <h3 className="font-semibold mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {feature.description}
-                </p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="relative py-24 px-6 gradient-calm">
-        <div className="max-w-5xl mx-auto">
-          <motion.div
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Students who started
-            </h2>
-            <p className="text-muted-foreground">
-              Real stories from students who broke through procrastination.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((testimonial, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.15 }}
-                className="glass rounded-2xl p-6"
-              >
-                <p className="text-sm leading-relaxed mb-4 italic text-muted-foreground">
-                  &ldquo;{testimonial.quote}&rdquo;
-                </p>
-                <p className="text-sm font-medium">{testimonial.name}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="relative py-24 px-6">
+      {/* Final CTA — warm, not aggressive */}
+      <section className="py-28 px-6">
         <motion.div
-          className="max-w-2xl mx-auto text-center"
+          className="max-w-lg mx-auto text-center"
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Ready to build momentum?
+          <img src="/momentum.png" alt="" className="w-12 h-12 mx-auto mb-6 rounded-xl shadow-warm" />
+          <h2 className="text-2xl sm:text-3xl font-bold mb-3">
+            The first step is the hardest.
           </h2>
-          <p className="text-muted-foreground mb-8 text-lg">
-            The hardest part is starting. Let us make that easier.
+          <p className="text-muted-foreground mb-8 text-[15px] leading-relaxed">
+            You don&apos;t need to feel ready. You just need to begin.
+            <br />
+            Momentum is here when you are.
           </p>
           <Button
             size="lg"
             onClick={onGetStarted}
-            className="text-base px-8 py-6 rounded-xl shadow-glow gradient-primary hover:opacity-90 transition-opacity gap-2"
+            className="text-[15px] px-8 py-6 rounded-2xl gradient-primary text-white shadow-glow hover:shadow-glow-lg transition-shadow duration-300 gap-2 font-medium"
           >
-            Start Now
+            Try Momentum
             <ArrowRight className="h-4 w-4" />
           </Button>
         </motion.div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t py-8 px-6">
-        <div className="max-w-6xl mx-auto flex items-center justify-between text-sm text-muted-foreground">
+      <footer className="border-t border-black/[0.04] py-8 px-6 bg-white/30">
+        <div className="max-w-5xl mx-auto flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <img src="/momentum.svg" alt="Momentum" className="w-5 h-5" />
-            <span>Momentum</span>
+            <img src="/momentum.png" alt="Momentum" className="w-5 h-5 rounded" />
+            <span className="text-xs font-medium">Momentum</span>
           </div>
-          <p>Built with ❤️ for students who start</p>
+          <p className="text-xs">For students who start</p>
         </div>
       </footer>
     </div>
