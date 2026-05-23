@@ -5,7 +5,7 @@ import { CheckCircle2, Circle, Clock, Play, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { completeTask, saveTasks, getTasks, addXP } from "@/lib/store";
+import { completeTask, deleteTask, getTasks, addXP } from "@/lib/store";
 import confetti from "canvas-confetti";
 
 interface TaskListProps {
@@ -37,8 +37,7 @@ export function TaskList({ tasks, onStartFocus, onRefresh }: TaskListProps) {
   };
 
   const handleDelete = (taskId: string) => {
-    const allTasks = getTasks().filter((t) => t.id !== taskId);
-    saveTasks(allTasks);
+    deleteTask(taskId);
     onRefresh();
   };
 

@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ArrowLeft, Sparkles, Rocket } from "lucide-react";
+import { ArrowRight, ArrowLeft, Sparkles, Rocket, Mail, Chrome, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { createUser } from "@/lib/store";
+import { createUser, signInWithGoogle, signInWithMagicLink } from "@/lib/store";
+import { isSupabaseConfigured } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 
 interface OnboardingProps {
@@ -51,12 +52,18 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     goal: "",
     stressLevel: "",
   });
+  const [email, setEmail] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
-  const totalSteps = 5;
+  const hasAuth = isSupabaseConfigured();
+  const totalSteps = hasAuth ? 6 : 5;
+  const contentStep = hasAuth ? step - 1 : step;
   const progress = ((step + 1) / totalSteps) * 100;
 
   const canProceed = () => {
-    switch (step) {
+    if (hasAuth && step === 0) return true; // Auth step can always be skipped
+    switch (contentStep) {
       case 0: return data.name.trim().length > 0;
       case 1: return data.struggle.length > 0;
       case 2: return data.studyStyle.length > 0;
@@ -70,7 +77,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     if (step < totalSteps - 1) {
       setStep(step + 1);
     } else {
-      // Complete onboarding
       createUser(data.name, {
         academicStruggle: data.struggle,
         studyStyle: data.studyStyle,
@@ -83,6 +89,22 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
   const handleBack = () => {
     if (step > 0) setStep(step - 1);
+  };
+
+  const handleGoogleSignIn = async () => {
+    setAuthLoading(true);
+    await signInWithGoogle();
+    // Redirects away — loading state stays
+  };
+
+  const handleMagicLink = async () => {
+    if (!email.trim()) return;
+    setAuthLoading(true);
+    const { error } = await signInWithMagicLink(email);
+    setAuthLoading(false);
+    if (!error) {
+      setMagicLinkSent(true);
+    }
   };
 
   return (
@@ -126,7 +148,88 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
         {/* Step content */}
         <AnimatePresence mode="wait">
-          {step === 0 && (
+          {/* Auth Step (only if Supabase is configured) */}
+          {hasAuth && step === 0 && (
+            <StepContainer key="auth">
+              <h2 className="text-2xl font-bold mb-2">Welcome to Momentum ✨</h2>
+              <p className="text-muted-foreground mb-6 text-sm">
+                Sign in to save your progress across devices, or continue without an account.
+              </p>
+
+              {magicLinkSent ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="text-center p-6 rounded-xl bg-emerald-50 border border-emerald-200"
+                >
+                  <Mail className="h-8 w-8 text-emerald-500 mx-auto mb-3" />
+                  <p className="text-sm font-medium text-emerald-700">Check your email!</p>
+                  <p className="text-xs text-emerald-600 mt-1">
+                    We sent a magic link to {email}
+                  </p>
+                </motion.div>
+              ) : (
+                <div className="space-y-3">
+                  <Button
+                    onClick={handleGoogleSignIn}
+                    disabled={authLoading}
+                    variant="outline"
+                    className="w-full gap-2 py-5"
+                  >
+                    {authLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Chrome className="h-4 w-4" />
+                    )}
+                    Continue with Google
+                  </Button>
+
+                  <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="bg-background px-2 text-muted-foreground">or</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleMagicLink()}
+                      placeholder="your@email.edu"
+                      className="flex-1 px-4 py-2.5 rounded-xl border bg-white/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                    <Button
+                      onClick={handleMagicLink}
+                      disabled={authLoading || !email.trim()}
+                      size="sm"
+                      className="px-4"
+                    >
+                      <Mail className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-center text-muted-foreground">
+                    We&apos;ll send a magic link — no password needed
+                  </p>
+                </div>
+              )}
+
+              <div className="mt-6 text-center">
+                <button
+                  onClick={handleNext}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+                >
+                  Skip — continue without an account
+                </button>
+              </div>
+            </StepContainer>
+          )}
+
+          {/* Name step */}
+          {contentStep === 0 && (!hasAuth || step > 0) && (
             <StepContainer key="name">
               <h2 className="text-2xl font-bold mb-2">Hey there 👋</h2>
               <p className="text-muted-foreground mb-6">
@@ -144,7 +247,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             </StepContainer>
           )}
 
-          {step === 1 && (
+          {contentStep === 1 && (
             <StepContainer key="struggle">
               <h2 className="text-2xl font-bold mb-2">
                 What&apos;s your biggest struggle?
@@ -172,7 +275,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             </StepContainer>
           )}
 
-          {step === 2 && (
+          {contentStep === 2 && (
             <StepContainer key="style">
               <h2 className="text-2xl font-bold mb-2">
                 How do you like to study?
@@ -200,7 +303,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             </StepContainer>
           )}
 
-          {step === 3 && (
+          {contentStep === 3 && (
             <StepContainer key="goal">
               <h2 className="text-2xl font-bold mb-2">
                 What&apos;s your current goal?
@@ -220,7 +323,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             </StepContainer>
           )}
 
-          {step === 4 && (
+          {contentStep === 4 && (
             <StepContainer key="stress">
               <h2 className="text-2xl font-bold mb-2">
                 How stressed are you right now?
@@ -265,24 +368,26 @@ export function Onboarding({ onComplete }: OnboardingProps) {
             Back
           </Button>
 
-          <Button
-            onClick={handleNext}
-            disabled={!canProceed()}
-            className={cn(
-              "gap-2 px-6",
-              step === totalSteps - 1 && "gradient-primary text-white shadow-glow"
-            )}
-          >
-            {step === totalSteps - 1 ? (
-              <>
-                Let&apos;s go <Rocket className="h-4 w-4" />
-              </>
-            ) : (
-              <>
-                Next <ArrowRight className="h-4 w-4" />
-              </>
-            )}
-          </Button>
+          {!(hasAuth && step === 0) && (
+            <Button
+              onClick={handleNext}
+              disabled={!canProceed()}
+              className={cn(
+                "gap-2 px-6",
+                step === totalSteps - 1 && "gradient-primary text-white shadow-glow"
+              )}
+            >
+              {step === totalSteps - 1 ? (
+                <>
+                  Let&apos;s go <Rocket className="h-4 w-4" />
+                </>
+              ) : (
+                <>
+                  Next <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </Button>
+          )}
         </motion.div>
       </div>
     </motion.div>

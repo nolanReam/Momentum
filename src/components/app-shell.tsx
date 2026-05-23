@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, LogOut, AlertTriangle } from "lucide-react";
+import { LogOut, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dashboard } from "@/components/dashboard/dashboard";
 import { EmotionalCheckin } from "@/components/emotional-checkin";
@@ -10,7 +10,8 @@ import { TaskBreakdown } from "@/components/task-breakdown";
 import { FocusMode } from "@/components/focus-mode";
 import { PanicMode } from "@/components/panic-mode";
 import { Reflection } from "@/components/reflection";
-import { getUser, clearAllData } from "@/lib/store";
+import { getUser, signOut, fullSync, processSyncQueue } from "@/lib/store";
+import { isSupabaseConfigured } from "@/lib/supabase";
 import { UserProfile, Task, Mood } from "@/lib/types";
 
 interface AppShellProps {
@@ -28,6 +29,20 @@ export function AppShell({ onLogout }: AppShellProps) {
 
   useEffect(() => {
     setUser(getUser());
+
+    // Process any queued sync operations
+    if (isSupabaseConfigured()) {
+      processSyncQueue();
+    }
+
+    // Listen for online events to trigger sync
+    const handleOnline = () => {
+      if (isSupabaseConfigured()) {
+        fullSync();
+      }
+    };
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
   }, []);
 
   const refreshUser = () => {
@@ -69,8 +84,8 @@ export function AppShell({ onLogout }: AppShellProps) {
     setView("panic");
   };
 
-  const handleLogout = () => {
-    clearAllData();
+  const handleLogout = async () => {
+    await signOut();
     onLogout();
   };
 

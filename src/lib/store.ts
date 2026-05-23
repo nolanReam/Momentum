@@ -1,8 +1,15 @@
 import { UserProfile, Task, EmotionalCheckin, Achievement } from "./types";
+import { getSupabase, isSupabaseConfigured, DbProfile, DbTask } from "./supabase";
 
 // ============================================
-// localStorage persistence layer
-// Works perfectly without any database
+// UNIFIED STORE: localStorage + Supabase sync
+//
+// Strategy:
+// 1. All reads hit localStorage first (instant)
+// 2. All writes go to localStorage immediately (optimistic)
+// 3. If Supabase is configured, sync in background
+// 4. On load, pull latest from Supabase to localStorage
+// 5. Queue failed writes and retry on reconnect
 // ============================================
 
 const STORAGE_KEYS = {
@@ -10,7 +17,146 @@ const STORAGE_KEYS = {
   tasks: "momentum_tasks",
   checkins: "momentum_checkins",
   achievements: "momentum_achievements",
+  syncQueue: "momentum_sync_queue",
+  authUser: "momentum_auth_user",
 } as const;
+
+// ============================================
+// SYNC QUEUE (offline-first)
+// ============================================
+interface SyncOperation {
+  id: string;
+  table: string;
+  operation: "upsert" | "update" | "insert" | "delete";
+  data: any;
+  timestamp: string;
+}
+
+function getSyncQueue(): SyncOperation[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.syncQueue);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function addToSyncQueue(op: Omit<SyncOperation, "id" | "timestamp">): void {
+  if (typeof window === "undefined") return;
+  const queue = getSyncQueue();
+  queue.push({
+    ...op,
+    id: `sync-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    timestamp: new Date().toISOString(),
+  });
+  localStorage.setItem(STORAGE_KEYS.syncQueue, JSON.stringify(queue));
+}
+
+function clearSyncQueue(): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(STORAGE_KEYS.syncQueue, JSON.stringify([]));
+}
+
+// Process queued operations when back online
+export async function processSyncQueue(): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) return;
+
+  const queue = getSyncQueue();
+  if (queue.length === 0) return;
+
+  const authUser = await getAuthUserId();
+  if (!authUser) return;
+
+  const failedOps: SyncOperation[] = [];
+
+  for (const op of queue) {
+    try {
+      if (op.operation === "upsert") {
+        await supabase.from(op.table).upsert({ ...op.data, user_id: authUser });
+      } else if (op.operation === "insert") {
+        await supabase.from(op.table).insert({ ...op.data, user_id: authUser });
+      } else if (op.operation === "update") {
+        const { id, ...updateData } = op.data;
+        await supabase.from(op.table).update(updateData).eq("id", id).eq("user_id", authUser);
+      } else if (op.operation === "delete") {
+        await supabase.from(op.table).delete().eq("id", op.data.id).eq("user_id", authUser);
+      }
+    } catch {
+      failedOps.push(op);
+    }
+  }
+
+  localStorage.setItem(STORAGE_KEYS.syncQueue, JSON.stringify(failedOps));
+}
+
+// ============================================
+// AUTH HELPERS
+// ============================================
+export async function getAuthUserId(): Promise<string | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    return user?.id || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function signInWithGoogle(): Promise<{ error: string | null }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase not configured" };
+
+  try {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    return { error: error?.message || null };
+  } catch (e: any) {
+    return { error: e.message || "Sign in failed" };
+  }
+}
+
+export async function signInWithMagicLink(email: string): Promise<{ error: string | null }> {
+  const supabase = getSupabase();
+  if (!supabase) return { error: "Supabase not configured" };
+
+  try {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    return { error: error?.message || null };
+  } catch (e: any) {
+    return { error: e.message || "Sign in failed" };
+  }
+}
+
+export async function signOut(): Promise<void> {
+  const supabase = getSupabase();
+  if (supabase) {
+    await supabase.auth.signOut();
+  }
+  clearAllData();
+}
+
+export async function getSession() {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session;
+  } catch {
+    return null;
+  }
+}
 
 // ============================================
 // USER PROFILE
@@ -29,6 +175,8 @@ export function getUser(): UserProfile | null {
 export function saveUser(user: UserProfile): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
+  // Background sync to Supabase
+  syncProfileToCloud(user);
 }
 
 export function createUser(name: string, preferences: UserProfile["preferences"]): UserProfile {
@@ -52,28 +200,32 @@ export function addXP(amount: number): UserProfile | null {
 
   user.xp += amount;
   user.level = calculateLevel(user.xp);
-  user.lastActive = new Date().toISOString();
 
-  // Update streak
+  // Update streak logic
   const lastActive = new Date(user.lastActive);
   const today = new Date();
-  const diffDays = Math.floor((today.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays === 1) {
-    user.streak += 1;
-    if (user.streak > user.longestStreak) {
-      user.longestStreak = user.streak;
+  const lastDate = lastActive.toDateString();
+  const todayDate = today.toDateString();
+
+  if (lastDate !== todayDate) {
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (lastActive.toDateString() === yesterday.toDateString()) {
+      user.streak += 1;
+      if (user.streak > user.longestStreak) {
+        user.longestStreak = user.streak;
+      }
+    } else {
+      user.streak = 1;
     }
-  } else if (diffDays > 1) {
-    user.streak = 1;
   }
 
+  user.lastActive = new Date().toISOString();
   saveUser(user);
   return user;
 }
 
 function calculateLevel(xp: number): number {
-  // Each level requires progressively more XP
-  // Level 1: 0, Level 2: 100, Level 3: 250, Level 4: 450...
   const baseXP = 100;
   const multiplier = 1.5;
   let level = 1;
@@ -85,6 +237,111 @@ function calculateLevel(xp: number): number {
   }
 
   return level;
+}
+
+// Cloud sync for profile
+async function syncProfileToCloud(user: UserProfile): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) return;
+
+  const authId = await getAuthUserId();
+  if (!authId) {
+    addToSyncQueue({
+      table: "profiles",
+      operation: "upsert",
+      data: profileToDb(user),
+    });
+    return;
+  }
+
+  try {
+    await supabase.from("profiles").upsert({
+      id: authId,
+      name: user.name,
+      xp: user.xp,
+      streak: user.streak,
+      longest_streak: user.longestStreak,
+      level: user.level,
+      last_active: user.lastActive,
+      onboarding_complete: user.onboardingComplete,
+      preferences: user.preferences,
+    });
+  } catch {
+    addToSyncQueue({
+      table: "profiles",
+      operation: "upsert",
+      data: profileToDb(user),
+    });
+  }
+}
+
+function profileToDb(user: UserProfile) {
+  return {
+    name: user.name,
+    xp: user.xp,
+    streak: user.streak,
+    longest_streak: user.longestStreak,
+    level: user.level,
+    last_active: user.lastActive,
+    onboarding_complete: user.onboardingComplete,
+    preferences: user.preferences,
+  };
+}
+
+function dbToProfile(db: DbProfile): UserProfile {
+  return {
+    name: db.name,
+    xp: db.xp,
+    streak: db.streak,
+    longestStreak: db.longest_streak,
+    level: db.level,
+    lastActive: db.last_active,
+    onboardingComplete: db.onboarding_complete,
+    preferences: {
+      studyStyle: db.preferences?.studyStyle || "",
+      stressLevel: db.preferences?.stressLevel || "",
+      academicStruggle: db.preferences?.academicStruggle || "",
+      currentGoal: db.preferences?.currentGoal || "",
+    },
+  };
+}
+
+// Pull latest profile from Supabase
+export async function syncProfileFromCloud(): Promise<UserProfile | null> {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
+  const authId = await getAuthUserId();
+  if (!authId) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", authId)
+      .single();
+
+    if (error || !data) return null;
+
+    const profile = dbToProfile(data as DbProfile);
+    // Merge: use cloud data but keep local if more recent
+    const localUser = getUser();
+    if (localUser) {
+      const localDate = new Date(localUser.lastActive).getTime();
+      const cloudDate = new Date(profile.lastActive).getTime();
+      if (localDate > cloudDate) {
+        // Local is newer — push to cloud
+        syncProfileToCloud(localUser);
+        return localUser;
+      }
+    }
+
+    // Cloud is newer or no local — use cloud
+    localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(profile));
+    return profile;
+  } catch {
+    return null;
+  }
 }
 
 // ============================================
@@ -116,6 +373,9 @@ export function addTask(task: Omit<Task, "id" | "created_at" | "completed_at">):
   };
   tasks.push(newTask);
   saveTasks(tasks);
+
+  // Background cloud sync
+  syncTaskToCloud(newTask, "insert");
   return newTask;
 }
 
@@ -127,7 +387,135 @@ export function completeTask(taskId: string): Task | null {
   tasks[index].status = "completed";
   tasks[index].completed_at = new Date().toISOString();
   saveTasks(tasks);
+
+  // Background cloud sync
+  syncTaskToCloud(tasks[index], "update");
   return tasks[index];
+}
+
+export function deleteTask(taskId: string): void {
+  const tasks = getTasks().filter((t) => t.id !== taskId);
+  saveTasks(tasks);
+
+  // Background cloud sync
+  syncTaskDelete(taskId);
+}
+
+async function syncTaskToCloud(task: Task, operation: "insert" | "update"): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) return;
+
+  const authId = await getAuthUserId();
+  if (!authId) {
+    addToSyncQueue({ table: "tasks", operation, data: taskToDb(task, "") });
+    return;
+  }
+
+  try {
+    const dbTask = taskToDb(task, authId);
+    if (operation === "insert") {
+      await supabase.from("tasks").upsert(dbTask);
+    } else {
+      await supabase.from("tasks").update({
+        status: dbTask.status,
+        completed_at: dbTask.completed_at,
+        title: dbTask.title,
+        description: dbTask.description,
+        priority: dbTask.priority,
+        estimated_minutes: dbTask.estimated_minutes,
+        order_index: dbTask.order_index,
+      }).eq("id", dbTask.id).eq("user_id", authId);
+    }
+  } catch {
+    addToSyncQueue({ table: "tasks", operation, data: taskToDb(task, authId || "") });
+  }
+}
+
+async function syncTaskDelete(taskId: string): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) return;
+
+  const authId = await getAuthUserId();
+  if (!authId) {
+    addToSyncQueue({ table: "tasks", operation: "delete", data: { id: taskId } });
+    return;
+  }
+
+  try {
+    await supabase.from("tasks").delete().eq("id", taskId).eq("user_id", authId);
+  } catch {
+    addToSyncQueue({ table: "tasks", operation: "delete", data: { id: taskId } });
+  }
+}
+
+function taskToDb(task: Task, userId: string): DbTask {
+  return {
+    id: task.id,
+    user_id: userId,
+    title: task.title,
+    description: task.description,
+    status: task.status,
+    priority: task.priority,
+    estimated_minutes: task.estimated_minutes,
+    xp_reward: task.xp_reward,
+    parent_task_id: task.parent_task_id,
+    order_index: task.order_index,
+    created_at: task.created_at,
+    completed_at: task.completed_at,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+function dbToTask(db: DbTask): Task {
+  return {
+    id: db.id,
+    title: db.title,
+    description: db.description,
+    status: db.status,
+    priority: db.priority,
+    estimated_minutes: db.estimated_minutes,
+    xp_reward: db.xp_reward,
+    parent_task_id: db.parent_task_id,
+    order_index: db.order_index,
+    created_at: db.created_at,
+    completed_at: db.completed_at,
+  };
+}
+
+export async function syncTasksFromCloud(): Promise<Task[]> {
+  const supabase = getSupabase();
+  if (!supabase) return getTasks();
+
+  const authId = await getAuthUserId();
+  if (!authId) return getTasks();
+
+  try {
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("*")
+      .eq("user_id", authId)
+      .order("created_at", { ascending: true });
+
+    if (error || !data) return getTasks();
+
+    const cloudTasks = (data as DbTask[]).map(dbToTask);
+
+    // Merge: keep local tasks that aren't in cloud, add cloud tasks
+    const localTasks = getTasks();
+    const cloudIds = new Set(cloudTasks.map((t) => t.id));
+    const localOnly = localTasks.filter((t) => !cloudIds.has(t.id));
+
+    // Push local-only tasks to cloud
+    for (const task of localOnly) {
+      syncTaskToCloud(task, "insert");
+    }
+
+    const merged = [...cloudTasks, ...localOnly];
+    saveTasks(merged);
+    return merged;
+  } catch {
+    return getTasks();
+  }
 }
 
 // ============================================
@@ -138,9 +526,11 @@ export function saveCheckin(checkin: EmotionalCheckin): void {
   const stored = localStorage.getItem(STORAGE_KEYS.checkins);
   const checkins: EmotionalCheckin[] = stored ? JSON.parse(stored) : [];
   checkins.push(checkin);
-  // Keep last 50 check-ins
   if (checkins.length > 50) checkins.splice(0, checkins.length - 50);
   localStorage.setItem(STORAGE_KEYS.checkins, JSON.stringify(checkins));
+
+  // Background cloud sync
+  syncCheckinToCloud(checkin);
 }
 
 export function getLatestCheckin(): EmotionalCheckin | null {
@@ -149,6 +539,78 @@ export function getLatestCheckin(): EmotionalCheckin | null {
   if (!stored) return null;
   const checkins: EmotionalCheckin[] = JSON.parse(stored);
   return checkins[checkins.length - 1] || null;
+}
+
+async function syncCheckinToCloud(checkin: EmotionalCheckin): Promise<void> {
+  const supabase = getSupabase();
+  if (!supabase) return;
+
+  const authId = await getAuthUserId();
+  if (!authId) {
+    addToSyncQueue({
+      table: "emotional_checkins",
+      operation: "insert",
+      data: { mood: checkin.mood, energy_level: checkin.energy_level, hardest_part: checkin.hardest_part },
+    });
+    return;
+  }
+
+  try {
+    await supabase.from("emotional_checkins").insert({
+      user_id: authId,
+      mood: checkin.mood,
+      energy_level: checkin.energy_level,
+      hardest_part: checkin.hardest_part,
+    });
+  } catch {
+    addToSyncQueue({
+      table: "emotional_checkins",
+      operation: "insert",
+      data: { mood: checkin.mood, energy_level: checkin.energy_level, hardest_part: checkin.hardest_part },
+    });
+  }
+}
+
+// ============================================
+// REFLECTIONS
+// ============================================
+export async function saveReflection(
+  taskId: string | null,
+  taskTitle: string,
+  difficulty: number,
+  confidence: number,
+  notes: string
+): Promise<void> {
+  // Cloud sync
+  const supabase = getSupabase();
+  if (!supabase) return;
+
+  const authId = await getAuthUserId();
+  if (!authId) {
+    addToSyncQueue({
+      table: "reflections",
+      operation: "insert",
+      data: { task_id: taskId, task_title: taskTitle, difficulty_felt: difficulty, confidence_level: confidence, notes },
+    });
+    return;
+  }
+
+  try {
+    await supabase.from("reflections").insert({
+      user_id: authId,
+      task_id: taskId,
+      task_title: taskTitle,
+      difficulty_felt: difficulty,
+      confidence_level: confidence,
+      notes: notes || null,
+    });
+  } catch {
+    addToSyncQueue({
+      table: "reflections",
+      operation: "insert",
+      data: { task_id: taskId, task_title: taskTitle, difficulty_felt: difficulty, confidence_level: confidence, notes },
+    });
+  }
 }
 
 // ============================================
@@ -188,6 +650,26 @@ export function unlockAchievement(id: string): Achievement | null {
   return achievements[index];
 }
 
+// ============================================
+// FULL SYNC (call on app load when authenticated)
+// ============================================
+export async function fullSync(): Promise<void> {
+  if (!isSupabaseConfigured()) return;
+
+  try {
+    await Promise.all([
+      syncProfileFromCloud(),
+      syncTasksFromCloud(),
+      processSyncQueue(),
+    ]);
+  } catch {
+    // Silent fail — local data is always available
+  }
+}
+
+// ============================================
+// DATA MANAGEMENT
+// ============================================
 export function clearAllData(): void {
   if (typeof window === "undefined") return;
   Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));

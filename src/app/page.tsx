@@ -5,7 +5,8 @@ import { AnimatePresence } from "framer-motion";
 import { LandingPage } from "@/components/landing-page";
 import { Onboarding } from "@/components/onboarding";
 import { AppShell } from "@/components/app-shell";
-import { getUser } from "@/lib/store";
+import { getUser, getSession, fullSync } from "@/lib/store";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 type AppView = "landing" | "onboarding" | "app";
 
@@ -14,11 +15,43 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const user = getUser();
-    if (user?.onboardingComplete) {
-      setView("app");
+    async function init() {
+      // Check if user is already set up locally
+      const localUser = getUser();
+      if (localUser?.onboardingComplete) {
+        setView("app");
+        // Background sync if Supabase configured
+        if (isSupabaseConfigured()) {
+          fullSync();
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if authenticated via Supabase (returning from OAuth)
+      if (isSupabaseConfigured()) {
+        const session = await getSession();
+        if (session) {
+          // User authenticated but hasn't onboarded yet
+          // Or sync profile from cloud
+          const { syncProfileFromCloud } = await import("@/lib/store");
+          const cloudProfile = await syncProfileFromCloud();
+          if (cloudProfile?.onboardingComplete) {
+            setView("app");
+            setIsLoading(false);
+            return;
+          }
+          // Authenticated but needs onboarding
+          setView("onboarding");
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      setIsLoading(false);
     }
-    setIsLoading(false);
+
+    init();
   }, []);
 
   if (isLoading) {

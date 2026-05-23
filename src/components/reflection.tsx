@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Star, Send, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { saveReflection } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 interface ReflectionProps {
@@ -33,6 +34,10 @@ export function Reflection({ taskTitle, xpEarned, onComplete, onSkip }: Reflecti
 
   const handleSubmit = async () => {
     setIsLoading(true);
+
+    // Save reflection to cloud/local
+    saveReflection(null, taskTitle, difficulty, confidence, notes);
+
     try {
       const res = await fetch("/api/reflection", {
         method: "POST",
