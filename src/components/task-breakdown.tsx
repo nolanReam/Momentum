@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Clock, Loader2, Send, CheckCircle2, ArrowLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusIndicator } from "@/components/status-indicator";
-import { addTask } from "@/lib/store";
+import { logAIRequest } from "@/components/ai-dev-panel";
+import { addTask, getUser } from "@/lib/store";
 import { Mood } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -34,11 +35,19 @@ export function TaskBreakdown({ mood, onClose }: TaskBreakdownProps) {
     if (!taskInput.trim()) return;
     setIsLoading(true);
 
+    const user = getUser();
+    const startTime = Date.now();
+
     try {
       const res = await fetch("/api/breakdown", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ task: taskInput, mood, energyLevel: 3 }),
+        body: JSON.stringify({
+          task: taskInput,
+          mood,
+          energyLevel: 3,
+          preferences: user?.preferences,
+        }),
       });
 
       if (res.ok) {
@@ -46,10 +55,26 @@ export function TaskBreakdown({ mood, onClose }: TaskBreakdownProps) {
         setSteps(data.steps);
         setEncouragement(data.encouragement || "");
         setAiSource(data.source || "fallback");
-        console.log("[TaskBreakdown] Received response:", { source: data.source, steps: data.steps?.length });
+
+        // Log to AI Dev Panel
+        logAIRequest({
+          endpoint: "/api/breakdown",
+          source: data.source || "fallback",
+          duration: data.duration || (Date.now() - startTime),
+          tokens: data.steps?.length ? data.steps.length * 50 : undefined, // estimate
+          status: data.source === "groq" ? "success" : "fallback",
+        });
+
+        console.log("[TaskBreakdown] Response:", { source: data.source, steps: data.steps?.length, duration: data.duration });
       }
-    } catch {
-      // Fallback handled by API
+    } catch (e) {
+      console.error("[TaskBreakdown] Fetch error:", e);
+      logAIRequest({
+        endpoint: "/api/breakdown",
+        source: "fallback",
+        duration: Date.now() - startTime,
+        status: "error",
+      });
     }
 
     setIsLoading(false);

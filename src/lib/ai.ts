@@ -113,7 +113,8 @@ Respond in JSON:
 export async function generateTaskBreakdown(
   task: string,
   mood?: string,
-  energyLevel?: number
+  energyLevel?: number,
+  preferences?: { studyStyle?: string; stressLevel?: string; academicStruggle?: string; currentGoal?: string }
 ): Promise<BreakdownResponse> {
   const moodContext = mood
     ? `\n\nStudent's current state: ${mood}, energy ${energyLevel}/5. Adapt step difficulty accordingly.`
@@ -122,8 +123,24 @@ export async function generateTaskBreakdown(
   const moodAdaptation = getMoodAdaptation(mood, energyLevel);
   const timeOfDay = new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening";
 
+  // Inject personalization from user preferences
+  let personalization = "";
+  if (preferences) {
+    const parts: string[] = [];
+    if (preferences.studyStyle === "short-bursts") parts.push("This student prefers short 10-15 min bursts. Keep steps very short.");
+    if (preferences.studyStyle === "deep-work") parts.push("This student can handle longer focus blocks (30-45 min). Include some deeper steps.");
+    if (preferences.stressLevel === "high" || preferences.stressLevel === "crisis") parts.push("Student is highly stressed. Be extra gentle and start with the absolute smallest step possible.");
+    if (preferences.academicStruggle === "starting") parts.push("This student specifically struggles with starting. Make the first step require almost zero effort.");
+    if (preferences.academicStruggle === "overwhelm") parts.push("This student gets overwhelmed easily. Limit to 4-5 steps max and be very specific.");
+    if (preferences.academicStruggle === "perfectionism") parts.push("This student struggles with perfectionism. Emphasize 'good enough' and 'done is better than perfect'.");
+    if (preferences.currentGoal) parts.push(`Student's current goal: "${preferences.currentGoal}". Connect encouragement to this.`);
+    if (parts.length > 0) {
+      personalization = "\n\nPERSONALIZATION (adapt based on what you know about this student):\n" + parts.join("\n");
+    }
+  }
+
   const { content, source } = await callAI(
-    BREAKDOWN_SYSTEM_PROMPT + moodAdaptation,
+    BREAKDOWN_SYSTEM_PROMPT + moodAdaptation + personalization,
     `Break down this task: "${task}"${moodContext}\n\nTime of day: ${timeOfDay}. Make your response specific to this exact task — no generic advice.`
   );
 

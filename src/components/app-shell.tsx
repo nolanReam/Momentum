@@ -11,6 +11,9 @@ import { TaskBreakdown } from "@/components/task-breakdown";
 import { FocusMode } from "@/components/focus-mode";
 import { PanicMode } from "@/components/panic-mode";
 import { Reflection } from "@/components/reflection";
+import { Settings } from "@/components/settings";
+import { MomentumRecovery } from "@/components/momentum-recovery";
+import { AIDevPanel } from "@/components/ai-dev-panel";
 import { getUser, signOut, fullSync, processSyncQueue } from "@/lib/store";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { UserProfile, Task, Mood } from "@/lib/types";
@@ -19,7 +22,7 @@ interface AppShellProps {
   onLogout: () => void;
 }
 
-type View = "dashboard" | "checkin" | "breakdown" | "focus" | "panic" | "reflection";
+type View = "dashboard" | "checkin" | "breakdown" | "focus" | "panic" | "reflection" | "settings" | "recovery";
 
 export function AppShell({ onLogout }: AppShellProps) {
   const [view, setView] = useState<View>("dashboard");
@@ -28,18 +31,29 @@ export function AppShell({ onLogout }: AppShellProps) {
   const [completedTask, setCompletedTask] = useState<Task | null>(null);
   const [currentMood, setCurrentMood] = useState<Mood | undefined>();
   const [isOnline, setIsOnline] = useState(true);
+  const [daysAway, setDaysAway] = useState(0);
 
   useEffect(() => {
-    setUser(getUser());
+    const u = getUser();
+    setUser(u);
+
+    // Check if user has been away (momentum recovery)
+    if (u) {
+      const lastActive = new Date(u.lastActive);
+      const now = new Date();
+      const diffDays = Math.floor((now.getTime() - lastActive.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays >= 3) {
+        setDaysAway(diffDays);
+        setView("recovery");
+      }
+    }
 
     // Track online status
-    setIsOnline(navigator.onLine);
+    setIsOnline(typeof navigator !== "undefined" ? navigator.onLine : true);
     const handleOnline = () => {
       setIsOnline(true);
       console.log("[Momentum] Back online — syncing...");
-      if (isSupabaseConfigured()) {
-        fullSync();
-      }
+      if (isSupabaseConfigured()) fullSync();
     };
     const handleOffline = () => {
       setIsOnline(false);
@@ -49,10 +63,7 @@ export function AppShell({ onLogout }: AppShellProps) {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    // Process any queued sync operations
-    if (isSupabaseConfigured()) {
-      processSyncQueue();
-    }
+    if (isSupabaseConfigured()) processSyncQueue();
 
     return () => {
       window.removeEventListener("online", handleOnline);
@@ -71,15 +82,8 @@ export function AppShell({ onLogout }: AppShellProps) {
 
   const handleCheckinComplete = (mood: Mood) => {
     setCurrentMood(mood);
-    if (focusTask) {
-      setView("focus");
-    } else {
-      setView("dashboard");
-    }
-  };
-
-  const handleBreakdown = () => {
-    setView("breakdown");
+    if (focusTask) setView("focus");
+    else setView("dashboard");
   };
 
   const handleFocusComplete = (task: Task) => {
@@ -95,10 +99,6 @@ export function AppShell({ onLogout }: AppShellProps) {
     setView("dashboard");
   };
 
-  const handlePanic = () => {
-    setView("panic");
-  };
-
   const handleLogout = async () => {
     await signOut();
     onLogout();
@@ -108,14 +108,35 @@ export function AppShell({ onLogout }: AppShellProps) {
 
   return (
     <div className="min-h-screen">
+      {/* AI Dev Panel (floating) */}
+      <AIDevPanel />
+
       <AnimatePresence mode="wait">
+        {view === "recovery" && (
+          <MomentumRecovery
+            key="recovery"
+            daysAway={daysAway}
+            userName={user.name}
+            onContinue={() => setView("dashboard")}
+          />
+        )}
+
+        {view === "settings" && (
+          <Settings
+            key="settings"
+            onClose={() => setView("dashboard")}
+            onLogout={handleLogout}
+          />
+        )}
+
         {view === "checkin" && (
           <motion.div
             key="checkin"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="min-h-screen flex items-center justify-center p-6 gradient-calm"
+            className="min-h-screen flex items-center justify-center p-6"
+            style={{ background: "linear-gradient(165deg, #f8f7ff 0%, #f3f1ff 30%, #eef9fb 70%, #f7fafb 100%)" }}
           >
             <EmotionalCheckin
               onComplete={handleCheckinComplete}
@@ -133,14 +154,12 @@ export function AppShell({ onLogout }: AppShellProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="min-h-screen flex items-center justify-center p-6 gradient-calm"
+            className="min-h-screen flex items-center justify-center p-6"
+            style={{ background: "linear-gradient(165deg, #f8f7ff 0%, #f3f1ff 30%, #eef9fb 70%, #f7fafb 100%)" }}
           >
             <TaskBreakdown
               mood={currentMood}
-              onClose={() => {
-                refreshUser();
-                setView("dashboard");
-              }}
+              onClose={() => { refreshUser(); setView("dashboard"); }}
             />
           </motion.div>
         )}
@@ -160,7 +179,8 @@ export function AppShell({ onLogout }: AppShellProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="min-h-screen flex items-center justify-center p-6 gradient-calm"
+            className="min-h-screen flex items-center justify-center p-6"
+            style={{ background: "linear-gradient(165deg, #f8f7ff 0%, #f3f1ff 30%, #eef9fb 70%, #f7fafb 100%)" }}
           >
             <PanicMode onClose={() => { refreshUser(); setView("dashboard"); }} />
           </motion.div>
@@ -172,7 +192,8 @@ export function AppShell({ onLogout }: AppShellProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="min-h-screen flex items-center justify-center p-6 gradient-calm"
+            className="min-h-screen flex items-center justify-center p-6"
+            style={{ background: "linear-gradient(165deg, #f8f7ff 0%, #f3f1ff 30%, #eef9fb 70%, #f7fafb 100%)" }}
           >
             <Reflection
               taskTitle={completedTask.title}
@@ -189,7 +210,8 @@ export function AppShell({ onLogout }: AppShellProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="min-h-screen gradient-calm"
+            className="min-h-screen"
+            style={{ background: "linear-gradient(165deg, #f8f7ff 0%, #f3f1ff 30%, #eef9fb 70%, #f7fafb 100%)" }}
           >
             {/* Header */}
             <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-black/[0.04]">
@@ -207,7 +229,7 @@ export function AppShell({ onLogout }: AppShellProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handlePanic}
+                    onClick={() => setView("panic")}
                     className="gap-1.5 text-xs border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
                   >
                     <AlertTriangle className="h-3.5 w-3.5" />
@@ -220,11 +242,11 @@ export function AppShell({ onLogout }: AppShellProps) {
               </div>
             </header>
 
-            {/* Dashboard */}
             <Dashboard
               user={user}
               onStartFocus={handleStartFocus}
-              onBreakdown={handleBreakdown}
+              onBreakdown={() => setView("breakdown")}
+              onSettings={() => setView("settings")}
               onRefresh={refreshUser}
             />
           </motion.div>
