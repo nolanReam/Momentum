@@ -66,6 +66,8 @@ export async function processSyncQueue(): Promise<void> {
   const queue = getSyncQueue();
   if (queue.length === 0) return;
 
+  console.log(`[Momentum Sync] Processing ${queue.length} queued operations...`);
+
   const authUser = await getAuthUserId();
   if (!authUser) return;
 
@@ -83,11 +85,14 @@ export async function processSyncQueue(): Promise<void> {
       } else if (op.operation === "delete") {
         await supabase.from(op.table).delete().eq("id", op.data.id).eq("user_id", authUser);
       }
-    } catch {
+      console.log(`[Momentum Sync] ✓ ${op.operation} on ${op.table}`);
+    } catch (e) {
+      console.error(`[Momentum Sync] ✗ Failed ${op.operation} on ${op.table}:`, e);
       failedOps.push(op);
     }
   }
 
+  console.log(`[Momentum Sync] Completed. ${queue.length - failedOps.length} succeeded, ${failedOps.length} failed.`);
   localStorage.setItem(STORAGE_KEYS.syncQueue, JSON.stringify(failedOps));
 }
 
@@ -255,7 +260,7 @@ async function syncProfileToCloud(user: UserProfile): Promise<void> {
   }
 
   try {
-    await supabase.from("profiles").upsert({
+    const { error } = await supabase.from("profiles").upsert({
       id: authId,
       name: user.name,
       xp: user.xp,
@@ -266,7 +271,10 @@ async function syncProfileToCloud(user: UserProfile): Promise<void> {
       onboarding_complete: user.onboardingComplete,
       preferences: user.preferences,
     });
-  } catch {
+    if (error) throw error;
+    console.log("[Momentum Sync] Profile synced to cloud ✓");
+  } catch (e) {
+    console.warn("[Momentum Sync] Profile sync failed — queued for retry:", e);
     addToSyncQueue({
       table: "profiles",
       operation: "upsert",
@@ -414,9 +422,10 @@ async function syncTaskToCloud(task: Task, operation: "insert" | "update"): Prom
   try {
     const dbTask = taskToDb(task, authId);
     if (operation === "insert") {
-      await supabase.from("tasks").upsert(dbTask);
+      const { error } = await supabase.from("tasks").upsert(dbTask);
+      if (error) throw error;
     } else {
-      await supabase.from("tasks").update({
+      const { error } = await supabase.from("tasks").update({
         status: dbTask.status,
         completed_at: dbTask.completed_at,
         title: dbTask.title,
@@ -425,8 +434,11 @@ async function syncTaskToCloud(task: Task, operation: "insert" | "update"): Prom
         estimated_minutes: dbTask.estimated_minutes,
         order_index: dbTask.order_index,
       }).eq("id", dbTask.id).eq("user_id", authId);
+      if (error) throw error;
     }
-  } catch {
+    console.log(`[Momentum Sync] Task ${operation}: "${task.title.slice(0, 30)}..." ✓`);
+  } catch (e) {
+    console.warn(`[Momentum Sync] Task ${operation} failed — queued:`, e);
     addToSyncQueue({ table: "tasks", operation, data: taskToDb(task, authId || "") });
   }
 }

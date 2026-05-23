@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Clock, Loader2, Send, CheckCircle2, ArrowLeft, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { StatusIndicator } from "@/components/status-indicator";
 import { addTask } from "@/lib/store";
 import { Mood } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -27,6 +28,7 @@ export function TaskBreakdown({ mood, onClose }: TaskBreakdownProps) {
   const [steps, setSteps] = useState<TaskStep[] | null>(null);
   const [encouragement, setEncouragement] = useState("");
   const [addedSteps, setAddedSteps] = useState<Set<number>>(new Set());
+  const [aiSource, setAiSource] = useState<"groq" | "fallback" | null>(null);
 
   const handleBreakdown = async () => {
     if (!taskInput.trim()) return;
@@ -43,6 +45,8 @@ export function TaskBreakdown({ mood, onClose }: TaskBreakdownProps) {
         const data = await res.json();
         setSteps(data.steps);
         setEncouragement(data.encouragement || "");
+        setAiSource(data.source || "fallback");
+        console.log("[TaskBreakdown] Received response:", { source: data.source, steps: data.steps?.length });
       }
     } catch {
       // Fallback handled by API
@@ -154,13 +158,18 @@ export function TaskBreakdown({ mood, onClose }: TaskBreakdownProps) {
             <div className="space-y-4">
               {/* Action bar */}
               <div className="flex items-center justify-between">
-                <button
-                  onClick={() => { setSteps(null); setAddedSteps(new Set()); setTaskInput(""); }}
-                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" />
-                  New task
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => { setSteps(null); setAddedSteps(new Set()); setTaskInput(""); setAiSource(null); }}
+                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    New task
+                  </button>
+                  {aiSource && (
+                    <StatusIndicator type={aiSource === "groq" ? "ai-generated" : "fallback"} />
+                  )}
+                </div>
                 <Button
                   size="sm"
                   onClick={handleAddAll}

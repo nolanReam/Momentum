@@ -1,4 +1,4 @@
 @echo off
 git add -A
-git commit -m "refactor: overhaul branding - use real logo, emotional design, remove generic SaaS vibes"
+git commit -m "feat: audit - add real Groq retry logic, status indicators, console logging, varied AI responses"
 git push origin main

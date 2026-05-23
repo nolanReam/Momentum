@@ -9,10 +9,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Assignment and deadline are required" }, { status: 400 });
     }
 
+    console.log("[API /panic] Request:", { assignment, deadline, currentProgress });
+
     const plan = await generatePanicPlan(assignment, deadline, currentProgress || "Haven't started");
+
+    console.log("[API /panic] Response:", {
+      source: plan.source,
+      stepCount: plan.plan.length,
+    });
+
     return NextResponse.json(plan);
   } catch (error) {
-    console.error("Panic API error:", error);
+    console.error("[API /panic] Error:", error);
     return NextResponse.json(
       { error: "Failed to generate panic plan" },
       { status: 500 }

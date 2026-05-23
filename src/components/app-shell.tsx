@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LogOut, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SyncBadge } from "@/components/status-indicator";
 import { Dashboard } from "@/components/dashboard/dashboard";
 import { EmotionalCheckin } from "@/components/emotional-checkin";
 import { TaskBreakdown } from "@/components/task-breakdown";
@@ -26,23 +27,37 @@ export function AppShell({ onLogout }: AppShellProps) {
   const [focusTask, setFocusTask] = useState<Task | null>(null);
   const [completedTask, setCompletedTask] = useState<Task | null>(null);
   const [currentMood, setCurrentMood] = useState<Mood | undefined>();
+  const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
     setUser(getUser());
+
+    // Track online status
+    setIsOnline(navigator.onLine);
+    const handleOnline = () => {
+      setIsOnline(true);
+      console.log("[Momentum] Back online — syncing...");
+      if (isSupabaseConfigured()) {
+        fullSync();
+      }
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      console.log("[Momentum] Gone offline — using local storage");
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
     // Process any queued sync operations
     if (isSupabaseConfigured()) {
       processSyncQueue();
     }
 
-    // Listen for online events to trigger sync
-    const handleOnline = () => {
-      if (isSupabaseConfigured()) {
-        fullSync();
-      }
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
-    window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
   }, []);
 
   const refreshUser = () => {
@@ -186,6 +201,7 @@ export function AppShell({ onLogout }: AppShellProps) {
                     className="w-7 h-7 rounded-lg hover:scale-105 transition-transform duration-300"
                   />
                   <span className="font-semibold text-[15px]">Momentum</span>
+                  <SyncBadge isOnline={isOnline} hasSupabase={isSupabaseConfigured()} />
                 </div>
                 <div className="flex items-center gap-2">
                   <Button

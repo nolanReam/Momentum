@@ -5,30 +5,65 @@ const groq = process.env.GROQ_API_KEY
   : null;
 
 const MODEL = "llama-3.3-70b-versatile";
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 1000;
 
 // ============================================
-// CORE AI FUNCTION
+// CORE AI FUNCTION (with retry + logging)
 // ============================================
-async function callAI(systemPrompt: string, userMessage: string): Promise<string | null> {
-  if (!groq) return null;
-
-  try {
-    const response = await groq.chat.completions.create({
-      model: MODEL,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
-      response_format: { type: "json_object" },
-    });
-
-    return response.choices[0]?.message?.content || null;
-  } catch (error) {
-    console.error("Groq AI error:", error);
-    return null;
+async function callAI(systemPrompt: string, userMessage: string): Promise<{ content: string | null; source: "groq" | "fallback" }> {
+  if (!groq) {
+    console.log("[Momentum AI] No GROQ_API_KEY configured — using fallback responses");
+    return { content: null, source: "fallback" };
   }
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      console.log(`[Momentum AI] Groq request (attempt ${attempt}/${MAX_RETRIES}):`, {
+        model: MODEL,
+        messagePreview: userMessage.slice(0, 80),
+        timestamp: new Date().toISOString(),
+      });
+
+      const response = await groq.chat.completions.create({
+        model: MODEL,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userMessage },
+        ],
+        temperature: 0.8 + Math.random() * 0.15, // Adds natural variability (0.8-0.95)
+        max_tokens: 2000,
+        response_format: { type: "json_object" },
+      });
+
+      const content = response.choices[0]?.message?.content || null;
+
+      console.log(`[Momentum AI] Groq response received:`, {
+        status: "success",
+        model: response.model,
+        tokens: response.usage?.total_tokens,
+        hasContent: !!content,
+      });
+
+      if (content) {
+        return { content, source: "groq" };
+      }
+    } catch (error: any) {
+      console.error(`[Momentum AI] Groq error (attempt ${attempt}/${MAX_RETRIES}):`, {
+        message: error?.message || "Unknown error",
+        status: error?.status,
+        code: error?.code,
+      });
+
+      if (attempt < MAX_RETRIES) {
+        console.log(`[Momentum AI] Retrying in ${RETRY_DELAY_MS}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS * attempt));
+      }
+    }
+  }
+
+  console.log("[Momentum AI] All retries exhausted — falling back to mock response");
+  return { content: null, source: "fallback" };
 }
 
 // ============================================
@@ -45,6 +80,7 @@ export interface BreakdownStep {
 export interface BreakdownResponse {
   steps: BreakdownStep[];
   encouragement: string;
+  source: "groq" | "fallback";
 }
 
 const BREAKDOWN_SYSTEM_PROMPT = `You are a calm, emotionally intelligent study coach. A student needs help breaking down a task that feels overwhelming.
@@ -57,6 +93,8 @@ Your approach:
 - Be warm and genuine, not fake-positive
 - Never do the work for them — help them plan and start
 - Adapt based on their emotional state if provided
+- Vary your language and suggestions — don't repeat the same phrases
+- Make each response unique and tailored to the specific task
 
 Respond in JSON:
 {
@@ -82,19 +120,23 @@ export async function generateTaskBreakdown(
     : "";
 
   const moodAdaptation = getMoodAdaptation(mood, energyLevel);
+  const timeOfDay = new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening";
 
-  const result = await callAI(
+  const { content, source } = await callAI(
     BREAKDOWN_SYSTEM_PROMPT + moodAdaptation,
-    `Break down this task: "${task}"${moodContext}`
+    `Break down this task: "${task}"${moodContext}\n\nTime of day: ${timeOfDay}. Make your response specific to this exact task — no generic advice.`
   );
 
-  if (result) {
+  if (content) {
     try {
-      return JSON.parse(result) as BreakdownResponse;
-    } catch {}
+      const parsed = JSON.parse(content);
+      return { ...parsed, source };
+    } catch (e) {
+      console.error("[Momentum AI] Failed to parse breakdown JSON:", content?.slice(0, 200));
+    }
   }
 
-  return getMockBreakdown(task);
+  return { ...getMockBreakdown(task), source: "fallback" };
 }
 
 // ============================================
@@ -103,6 +145,7 @@ export async function generateTaskBreakdown(
 export interface MotivationResponse {
   message: string;
   suggestion: string;
+  source: "groq" | "fallback";
 }
 
 const MOTIVATION_SYSTEM_PROMPT = `You are a supportive study coach. Generate a brief, genuine motivational message for a student.
@@ -112,6 +155,7 @@ Be:
 - Specific and actionable, not generic
 - Emotionally intelligent
 - Brief (1-2 sentences per field)
+- UNIQUE every time — never repeat the same message
 
 Respond in JSON:
 {
@@ -128,22 +172,32 @@ export async function generateMotivationMessage(
     mood && `Feeling: ${mood}`,
     streak && `Current streak: ${streak} days`,
     task && `Working on: ${task}`,
+    `Current time: ${new Date().toLocaleTimeString()}`,
+    `Random seed: ${Math.random().toString(36).slice(2, 8)}`, // Forces unique responses
   ]
     .filter(Boolean)
     .join(". ");
 
-  const result = await callAI(MOTIVATION_SYSTEM_PROMPT, context || "Student just opened the app.");
+  const { content, source } = await callAI(MOTIVATION_SYSTEM_PROMPT, context);
 
-  if (result) {
+  if (content) {
     try {
-      return JSON.parse(result) as MotivationResponse;
+      const parsed = JSON.parse(content);
+      return { ...parsed, source };
     } catch {}
   }
 
-  return {
-    message: "You don't need to do everything. Just start with one small step.",
-    suggestion: "Open your materials and read just the first paragraph.",
-  };
+  // Varied fallback messages
+  const fallbacks = [
+    { message: "You don't need to do everything. Just start with one small step.", suggestion: "Open your materials and read just the first paragraph." },
+    { message: "Progress isn't always visible, but every minute spent counts.", suggestion: "Set a timer for 5 minutes and just begin. You can stop after." },
+    { message: "The best time to start was yesterday. The second best time is now.", suggestion: "Write down the single easiest thing you could do in the next 3 minutes." },
+    { message: "Your brain needs momentum, not motivation. Action creates energy.", suggestion: "Just open the file or notebook. Don't think — just open it." },
+    { message: "It's okay if today is a low-energy day. Small still counts.", suggestion: "Review one page of notes. That's enough to keep the streak alive." },
+    { message: "You've done hard things before. This is just another one of those.", suggestion: "Name the very first physical action: open app, grab pen, read title." },
+  ];
+  const pick = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+  return { ...pick, source: "fallback" };
 }
 
 // ============================================
@@ -160,17 +214,20 @@ export interface PanicPlanResponse {
   plan: PanicStep[];
   reassurance: string;
   realistic_assessment: string;
+  source: "groq" | "fallback";
 }
 
 const PANIC_SYSTEM_PROMPT = `You are a calm, supportive study coach. A student is panicking about a deadline. Help them with a realistic emergency plan.
 
 Your approach:
 - Stay calm and reassuring
-- Create a prioritized plan that maximizes what they can realistically achieve
+- Create a prioritized plan (4-7 steps) that maximizes what they can realistically achieve
 - Be honest about what's possible in the time remaining
 - Focus on "good enough" not "perfect"
 - Include quick wins first to calm anxiety
 - Never shame them for being behind
+- Be specific to their actual assignment — no generic advice
+- Vary time estimates based on the actual work described
 
 Respond in JSON:
 {
@@ -191,18 +248,21 @@ export async function generatePanicPlan(
   deadline: string,
   currentProgress: string
 ): Promise<PanicPlanResponse> {
-  const result = await callAI(
+  const { content, source } = await callAI(
     PANIC_SYSTEM_PROMPT,
-    `Assignment: ${assignment}\nDeadline: ${deadline}\nCurrent progress: ${currentProgress}`
+    `Assignment: ${assignment}\nDeadline: ${deadline}\nCurrent progress: ${currentProgress}\nCurrent time: ${new Date().toLocaleString()}`
   );
 
-  if (result) {
+  if (content) {
     try {
-      return JSON.parse(result) as PanicPlanResponse;
-    } catch {}
+      const parsed = JSON.parse(content);
+      return { ...parsed, source };
+    } catch (e) {
+      console.error("[Momentum AI] Failed to parse panic plan JSON:", content?.slice(0, 200));
+    }
   }
 
-  return getMockPanicPlan();
+  return { ...getMockPanicPlan(), source: "fallback" };
 }
 
 // ============================================
@@ -212,6 +272,7 @@ export interface ReflectionAIResponse {
   feedback: string;
   next_session_tip: string;
   encouragement: string;
+  source: "groq" | "fallback";
 }
 
 const REFLECTION_SYSTEM_PROMPT = `You are a supportive study coach responding to a student's post-task reflection.
@@ -221,6 +282,7 @@ Be:
 - Adaptive — if they found it hard, acknowledge that
 - Brief and warm
 - Forward-looking with a specific tip for next time
+- Unique every time — vary your phrasing
 
 Respond in JSON:
 {
@@ -235,23 +297,36 @@ export async function generateReflectionResponse(
   confidence: number,
   notes?: string
 ): Promise<ReflectionAIResponse> {
-  const result = await callAI(
+  const { content, source } = await callAI(
     REFLECTION_SYSTEM_PROMPT,
-    `Task completed: "${taskTitle}"\nDifficulty felt: ${difficulty}/5\nConfidence: ${confidence}/5\nNotes: ${notes || "None"}`
+    `Task completed: "${taskTitle}"\nDifficulty felt: ${difficulty}/5\nConfidence: ${confidence}/5\nNotes: ${notes || "None"}\nTime: ${new Date().toLocaleTimeString()}`
   );
 
-  if (result) {
+  if (content) {
     try {
-      return JSON.parse(result) as ReflectionAIResponse;
+      const parsed = JSON.parse(content);
+      return { ...parsed, source };
     } catch {}
   }
 
+  // Varied fallback based on difficulty
+  const feedbacks = difficulty > 3
+    ? [
+        "That was a tough one, and you pushed through it. That takes real effort.",
+        "Hard doesn't mean impossible — you just proved that.",
+        "The fact that it felt difficult means you were actually challenging yourself.",
+      ]
+    : [
+        "Nice — you found your flow. That's the momentum building.",
+        "Smooth session. Your preparation is paying off.",
+        "When it clicks like that, it means you're building real understanding.",
+      ];
+
   return {
-    feedback: difficulty > 3
-      ? "That was a tough one, and you pushed through it. That takes real effort."
-      : "Nice — you found your flow. That's the momentum building.",
+    feedback: feedbacks[Math.floor(Math.random() * feedbacks.length)],
     next_session_tip: "Try starting with the part you feel most confident about next time.",
     encouragement: "Every session you complete makes the next one easier.",
+    source: "fallback",
   };
 }
 
@@ -261,6 +336,7 @@ export async function generateReflectionResponse(
 export interface FocusCoachingResponse {
   message: string;
   micro_tip: string;
+  source: "groq" | "fallback";
 }
 
 const FOCUS_COACHING_SYSTEM_PROMPT = `You are a calm focus coach. The student is in the middle of a work session. Provide a brief, grounding message.
@@ -269,6 +345,7 @@ Be:
 - Very brief (1 sentence each)
 - Calming, not distracting
 - Focused on the present moment
+- Different every time
 
 Respond in JSON:
 {
@@ -280,23 +357,26 @@ export async function generateFocusModeCoaching(
   currentStep: string,
   timeElapsed: number
 ): Promise<FocusCoachingResponse> {
-  const result = await callAI(
+  const { content, source } = await callAI(
     FOCUS_COACHING_SYSTEM_PROMPT,
-    `Currently working on: "${currentStep}". Time elapsed: ${timeElapsed} minutes.`
+    `Currently working on: "${currentStep}". Time elapsed: ${timeElapsed} minutes. Seed: ${Math.random().toString(36).slice(2, 6)}`
   );
 
-  if (result) {
+  if (content) {
     try {
-      return JSON.parse(result) as FocusCoachingResponse;
+      const parsed = JSON.parse(content);
+      return { ...parsed, source };
     } catch {}
   }
 
   const tips = [
     { message: "You're in it. Stay with this moment.", micro_tip: "Take one deep breath and continue." },
     { message: "One step at a time. You're doing it.", micro_tip: "Focus on just the next 5 minutes." },
-    { message: "Progress isn't always visible, but it's happening.", micro_tip: "If you're stuck, try writing one sentence about what you know." },
+    { message: "Progress isn't always visible, but it's happening.", micro_tip: "If stuck, write one sentence about what you know." },
+    { message: "You chose to be here. That's already a win.", micro_tip: "Relax your shoulders and keep going." },
+    { message: "The hard part was starting. You already did that.", micro_tip: "If your mind wanders, gently bring it back. No judgment." },
   ];
-  return tips[Math.floor(Math.random() * tips.length)];
+  return { ...tips[Math.floor(Math.random() * tips.length)], source: "fallback" };
 }
 
 // ============================================
@@ -322,99 +402,82 @@ function getMoodAdaptation(mood?: string, energyLevel?: number): string {
 }
 
 // ============================================
-// MOCK FALLBACKS (work without API key)
+// MOCK FALLBACKS (varied, not static)
 // ============================================
-function getMockBreakdown(task: string): BreakdownResponse {
-  return {
-    steps: [
-      {
-        title: "Gather your materials",
-        description: "Find your textbook, notes, and a pen. Just get everything in one place — no thinking required yet.",
-        estimated_minutes: 3,
-        priority: "low",
-        tip: "This is your warm-up. Zero pressure.",
-      },
-      {
-        title: "Read through your notes for 5 minutes",
-        description: "Just scan what you already have. You're activating existing knowledge, not learning anything new yet.",
-        estimated_minutes: 5,
-        priority: "low",
-        tip: "You already know more than you think.",
-      },
-      {
-        title: "Write down 3 things you already understand",
-        description: "Start with what you know. This builds confidence and shows you're not starting from zero.",
-        estimated_minutes: 7,
-        priority: "medium",
-        tip: "Even partial understanding counts.",
-      },
-      {
-        title: "Identify the 2 trickiest concepts",
-        description: "Just name them — you don't need to solve them yet. Knowing what's hard helps you focus.",
-        estimated_minutes: 5,
-        priority: "medium",
-        tip: "Naming the hard parts makes them less scary.",
-      },
-      {
-        title: "Work through one practice problem",
-        description: "Pick the easiest one available. One problem, start to finish. Show yourself you can do this.",
-        estimated_minutes: 15,
-        priority: "medium",
-        tip: "If you get stuck past 3 minutes, mark it and move on.",
-      },
-      {
-        title: "Take a real break",
-        description: "Stand up, stretch, get water. You've made real progress. Let your brain process.",
-        estimated_minutes: 5,
-        priority: "low",
-        tip: "Breaks are part of learning, not cheating.",
-      },
-    ],
-    encouragement: "You don't need to finish everything today. Starting is the hardest part, and you just did it.",
-  };
+function getMockBreakdown(task: string): Omit<BreakdownResponse, "source"> {
+  // Add variability based on task content
+  const isWriting = /write|essay|paper|draft/i.test(task);
+  const isStudying = /study|exam|final|test|review/i.test(task);
+  const isMath = /math|calc|problem|equation/i.test(task);
+
+  if (isWriting) {
+    return {
+      steps: [
+        { title: "Open a blank document", description: "Just open it. You don't need to write yet.", estimated_minutes: 2, priority: "low", tip: "The blank page is less scary once it's actually open." },
+        { title: "Write your thesis in one ugly sentence", description: "It doesn't need to be good. Just get your main argument down in any words.", estimated_minutes: 5, priority: "low", tip: "First drafts are supposed to be messy." },
+        { title: "List 3-4 main points", description: "Bullet points only. What are the big ideas you want to cover?", estimated_minutes: 8, priority: "medium", tip: "You're building a skeleton, not writing prose." },
+        { title: "Write the easiest paragraph first", description: "Skip the intro. Write whichever section you know best.", estimated_minutes: 15, priority: "medium", tip: "You don't have to write in order." },
+        { title: "Add one piece of evidence per point", description: "Find one quote, stat, or example for each main idea.", estimated_minutes: 12, priority: "medium", tip: "Imperfect evidence now beats perfect evidence never." },
+        { title: "Take a break — you've earned it", description: "Step away for 5 minutes. You've made real progress.", estimated_minutes: 5, priority: "low", tip: "Your brain needs processing time." },
+      ],
+      encouragement: "You don't need to finish the whole thing. You just need to get words on the page. That's already happening.",
+    };
+  }
+
+  if (isMath) {
+    return {
+      steps: [
+        { title: "Open to the problem set", description: "Just find the right page or document. That's step one done.", estimated_minutes: 2, priority: "low", tip: "Starting is literally just opening the thing." },
+        { title: "Read problem #1 without solving", description: "Just read it. Understand what it's asking. Don't pick up your pencil yet.", estimated_minutes: 3, priority: "low", tip: "Understanding the question is half the work." },
+        { title: "Solve the easiest problem you see", description: "Scan all problems and pick the one that feels most doable. Do that one first.", estimated_minutes: 10, priority: "medium", tip: "Quick wins build confidence for harder ones." },
+        { title: "Attempt one medium problem", description: "Try it for 8 minutes. If stuck, write what you DO know and move on.", estimated_minutes: 8, priority: "medium", tip: "Partial work often gets partial credit." },
+        { title: "Review your formulas/notes for 5 min", description: "Look at the key formulas. Sometimes seeing them sparks the approach.", estimated_minutes: 5, priority: "medium", tip: "You don't need to memorize — just refresh." },
+        { title: "Do one more problem", description: "You're warmed up now. Pick another one and go.", estimated_minutes: 12, priority: "high", tip: "Momentum is real. Use it." },
+      ],
+      encouragement: "Math builds on itself. Every problem you attempt — even partially — is making the next one easier.",
+    };
+  }
+
+  // Default study breakdown (with variability)
+  const variants = [
+    {
+      steps: [
+        { title: "Set up your space", description: "Clear your desk. Get your materials out. Put your phone face-down.", estimated_minutes: 3, priority: "low" as const, tip: "Environment shapes behavior." },
+        { title: "Review what you already know", description: "Flip through notes for 5 minutes. Just remind yourself what's familiar.", estimated_minutes: 5, priority: "low" as const, tip: "You know more than you think." },
+        { title: "Identify 3 key concepts", description: "What are the 3 most important things to understand? Write them down.", estimated_minutes: 7, priority: "medium" as const, tip: "Focus beats coverage every time." },
+        { title: "Explain one concept out loud", description: "Pick the easiest one and explain it like you're teaching a friend.", estimated_minutes: 8, priority: "medium" as const, tip: "If you can explain it, you understand it." },
+        { title: "Do one practice problem or question", description: "Find one question and answer it. Just one.", estimated_minutes: 12, priority: "medium" as const, tip: "Active recall > passive reading." },
+        { title: "Note what's still fuzzy", description: "Write down what you're unsure about. That's your focus for next session.", estimated_minutes: 5, priority: "low" as const, tip: "Knowing what you don't know is progress." },
+      ],
+      encouragement: "You don't need to master everything today. You just need to move the needle forward.",
+    },
+    {
+      steps: [
+        { title: "Just open your materials", description: "Textbook, slides, whatever. Open it. That's the first win.", estimated_minutes: 2, priority: "low" as const, tip: "The hardest part is literally starting." },
+        { title: "Scan the headings/outline", description: "Get a birds-eye view. What topics are covered? Don't read deeply yet.", estimated_minutes: 4, priority: "low" as const, tip: "Overview before detail." },
+        { title: "Highlight or mark 5 key terms", description: "Find 5 important concepts. Just mark them — you'll come back later.", estimated_minutes: 6, priority: "medium" as const, tip: "You're building a map of the territory." },
+        { title: "Summarize one section in 2 sentences", description: "Pick the section that makes most sense to you. Summarize it simply.", estimated_minutes: 10, priority: "medium" as const, tip: "Your words > textbook words for memory." },
+        { title: "Create 3 flashcard-style questions", description: "Write 3 questions you think might appear on the test.", estimated_minutes: 8, priority: "medium" as const, tip: "Predicting questions is a power study move." },
+        { title: "Review and close", description: "Look at what you did. You made real progress. Close your materials guilt-free.", estimated_minutes: 3, priority: "low" as const, tip: "Ending intentionally prevents guilt." },
+      ],
+      encouragement: "Starting was the hard part. You did it. Everything else is momentum.",
+    },
+  ];
+
+  return variants[Math.floor(Math.random() * variants.length)];
 }
 
-function getMockPanicPlan(): PanicPlanResponse {
+function getMockPanicPlan(): Omit<PanicPlanResponse, "source"> {
   return {
     plan: [
-      {
-        title: "Take 3 deep breaths",
-        duration: "1 min",
-        description: "Before anything else. Panic makes everything feel worse than it is.",
-        priority: "critical",
-      },
-      {
-        title: "Write down exactly what's due",
-        duration: "5 min",
-        description: "Get it out of your head and onto paper. List the specific deliverables.",
-        priority: "critical",
-      },
-      {
-        title: "Identify the minimum viable submission",
-        duration: "5 min",
-        description: "What's the bare minimum you need to turn in? Focus there first.",
-        priority: "critical",
-      },
-      {
-        title: "Do the easiest part first",
-        duration: "20 min",
-        description: "Start with whatever requires the least thinking. Build momentum before tackling hard parts.",
-        priority: "important",
-      },
-      {
-        title: "Tackle the core content",
-        duration: "45 min",
-        description: "Focus on the most important section. Good enough is good enough right now.",
-        priority: "important",
-      },
-      {
-        title: "Quick review and submit",
-        duration: "10 min",
-        description: "Don't perfectionist-loop. Review once, fix obvious issues, submit.",
-        priority: "if_time",
-      },
+      { title: "Take 3 deep breaths", duration: "1 min", description: "Before anything else. Panic makes everything feel worse than it is.", priority: "critical" },
+      { title: "Write down exactly what's due", duration: "5 min", description: "Get it out of your head and onto paper. List the specific deliverables.", priority: "critical" },
+      { title: "Identify the minimum viable submission", duration: "5 min", description: "What's the bare minimum you need to turn in? Focus there first.", priority: "critical" },
+      { title: "Do the easiest part first", duration: "20 min", description: "Start with whatever requires the least thinking. Build momentum.", priority: "important" },
+      { title: "Tackle the core content", duration: "45 min", description: "Focus on the most important section. Good enough is good enough.", priority: "important" },
+      { title: "Quick review and submit", duration: "10 min", description: "Don't perfectionist-loop. Review once, fix obvious issues, submit.", priority: "if_time" },
     ],
-    reassurance: "You're not the first student to be here, and you won't be the last. Let's focus on what's possible, not what's perfect.",
+    reassurance: "You're not the first student to be here. Let's focus on what's possible right now, not what should have happened earlier.",
     realistic_assessment: "You can still submit something meaningful. Focus on the core requirements and let go of perfection.",
   };
 }

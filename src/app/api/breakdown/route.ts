@@ -9,10 +9,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Task is required" }, { status: 400 });
     }
 
+    console.log("[API /breakdown] Request:", { task, mood, energyLevel });
+
     const breakdown = await generateTaskBreakdown(task, mood, energyLevel);
+
+    console.log("[API /breakdown] Response:", {
+      source: breakdown.source,
+      stepCount: breakdown.steps.length,
+    });
+
     return NextResponse.json(breakdown);
   } catch (error) {
-    console.error("Breakdown API error:", error);
+    console.error("[API /breakdown] Error:", error);
     return NextResponse.json(
       { error: "Failed to generate breakdown" },
       { status: 500 }

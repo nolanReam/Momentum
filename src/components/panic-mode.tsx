@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Loader2, Clock, ArrowLeft, CheckCircle2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { StatusIndicator } from "@/components/status-indicator";
 import { addTask } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +39,7 @@ export function PanicMode({ onClose }: PanicModeProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [plan, setPlan] = useState<PanicPlan | null>(null);
   const [addedSteps, setAddedSteps] = useState<Set<number>>(new Set());
+  const [aiSource, setAiSource] = useState<"groq" | "fallback" | null>(null);
 
   const handleGenerate = async () => {
     setIsLoading(true);
@@ -50,7 +52,9 @@ export function PanicMode({ onClose }: PanicModeProps) {
       if (res.ok) {
         const data = await res.json();
         setPlan(data);
+        setAiSource(data.source || "fallback");
         setStep(1);
+        console.log("[PanicMode] Received response:", { source: data.source, steps: data.plan?.length });
       }
     } catch (e) {
       console.error(e);
@@ -194,13 +198,18 @@ export function PanicMode({ onClose }: PanicModeProps) {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <button
-                    onClick={() => setStep(0)}
-                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    <ArrowLeft className="h-3.5 w-3.5" />
-                    Back
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setStep(0)}
+                      className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      <ArrowLeft className="h-3.5 w-3.5" />
+                      Back
+                    </button>
+                    {aiSource && (
+                      <StatusIndicator type={aiSource === "groq" ? "ai-generated" : "fallback"} />
+                    )}
+                  </div>
                   <Button size="sm" onClick={handleAddAll} className="text-xs gap-1">
                     Add All
                   </Button>
