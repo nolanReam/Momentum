@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, ArrowLeft, Sparkles, Rocket, Mail, Chrome, Loader2 } from "lucide-react";
+import { ArrowRight, ArrowLeft, Rocket } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { createUser, signInWithGoogle, signInWithMagicLink } from "@/lib/store";
+import { AuthForm } from "@/components/auth-form";
+import { createUser } from "@/lib/store";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 
@@ -52,9 +53,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     goal: "",
     stressLevel: "",
   });
-  const [email, setEmail] = useState("");
-  const [authLoading, setAuthLoading] = useState(false);
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   const hasAuth = isSupabaseConfigured();
   const totalSteps = hasAuth ? 6 : 5;
@@ -62,7 +60,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
   const progress = ((step + 1) / totalSteps) * 100;
 
   const canProceed = () => {
-    if (hasAuth && step === 0) return true; // Auth step can always be skipped
+    if (hasAuth && step === 0) return true;
     switch (contentStep) {
       case 0: return data.name.trim().length > 0;
       case 1: return data.struggle.length > 0;
@@ -89,22 +87,6 @@ export function Onboarding({ onComplete }: OnboardingProps) {
 
   const handleBack = () => {
     if (step > 0) setStep(step - 1);
-  };
-
-  const handleGoogleSignIn = async () => {
-    setAuthLoading(true);
-    await signInWithGoogle();
-    // Redirects away — loading state stays
-  };
-
-  const handleMagicLink = async () => {
-    if (!email.trim()) return;
-    setAuthLoading(true);
-    const { error } = await signInWithMagicLink(email);
-    setAuthLoading(false);
-    if (!error) {
-      setMagicLinkSent(true);
-    }
   };
 
   return (
@@ -142,82 +124,12 @@ export function Onboarding({ onComplete }: OnboardingProps) {
         <AnimatePresence mode="wait">
           {/* Auth Step (only if Supabase is configured) */}
           {hasAuth && step === 0 && (
-            <StepContainer key="auth">
-              <h2 className="text-2xl font-bold mb-2">Welcome to Momentum ✨</h2>
-              <p className="text-muted-foreground mb-6 text-sm">
-                Sign in to save your progress across devices, or continue without an account.
-              </p>
-
-              {magicLinkSent ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="text-center p-6 rounded-xl bg-emerald-50 border border-emerald-200"
-                >
-                  <Mail className="h-8 w-8 text-emerald-500 mx-auto mb-3" />
-                  <p className="text-sm font-medium text-emerald-700">Check your email!</p>
-                  <p className="text-xs text-emerald-600 mt-1">
-                    We sent a magic link to {email}
-                  </p>
-                </motion.div>
-              ) : (
-                <div className="space-y-3">
-                  <Button
-                    onClick={handleGoogleSignIn}
-                    disabled={authLoading}
-                    variant="outline"
-                    className="w-full gap-2 py-5"
-                  >
-                    {authLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Chrome className="h-4 w-4" />
-                    )}
-                    Continue with Google
-                  </Button>
-
-                  <div className="relative my-4">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs">
-                      <span className="bg-background px-2 text-muted-foreground">or</span>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleMagicLink()}
-                      placeholder="your@email.edu"
-                      className="flex-1 px-4 py-2.5 rounded-xl border bg-white/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    />
-                    <Button
-                      onClick={handleMagicLink}
-                      disabled={authLoading || !email.trim()}
-                      size="sm"
-                      className="px-4"
-                    >
-                      <Mail className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <p className="text-[10px] text-center text-muted-foreground">
-                    We&apos;ll send a magic link — no password needed
-                  </p>
-                </div>
-              )}
-
-              <div className="mt-6 text-center">
-                <button
-                  onClick={handleNext}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
-                >
-                  Skip — continue without an account
-                </button>
-              </div>
-            </StepContainer>
+            <div key="auth">
+              <AuthForm
+                onSuccess={handleNext}
+                onSkip={handleNext}
+              />
+            </div>
           )}
 
           {/* Name step */}

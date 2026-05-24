@@ -1,4 +1,4 @@
 @echo off
 git add -A
-git commit -m "fix: dark mode theme, fix Supabase URL, add Groq init logging, fix duplicate classNames"
+git commit -m "feat: add email/password + Google auth form, dark mode, fix Supabase URL"
 git push origin main
