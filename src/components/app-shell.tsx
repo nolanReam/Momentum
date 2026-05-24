@@ -14,6 +14,7 @@ import { Reflection } from "@/components/reflection";
 import { Settings } from "@/components/settings";
 import { MomentumRecovery } from "@/components/momentum-recovery";
 import { AIDevPanel } from "@/components/ai-dev-panel";
+import { CoachChat, CoachChatButton } from "@/components/coach-chat";
 import { getUser, signOut, fullSync, processSyncQueue } from "@/lib/store";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { UserProfile, Task, Mood } from "@/lib/types";
@@ -32,6 +33,7 @@ export function AppShell({ onLogout }: AppShellProps) {
   const [currentMood, setCurrentMood] = useState<Mood | undefined>();
   const [isOnline, setIsOnline] = useState(true);
   const [daysAway, setDaysAway] = useState(0);
+  const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
     const u = getUser();
@@ -52,12 +54,26 @@ export function AppShell({ onLogout }: AppShellProps) {
     const handleOffline = () => { setIsOnline(false); };
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
+
+    // Keyboard shortcut: Ctrl+K to open chat
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setChatOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
     if (isSupabaseConfigured()) {
       processSyncQueue();
-      // Sync tasks from cloud on load
       fullSync().then(() => refreshUser());
     }
-    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   const refreshUser = () => setUser(getUser());
@@ -73,6 +89,10 @@ export function AppShell({ onLogout }: AppShellProps) {
   return (
     <div className="min-h-screen bg-background">
       <AIDevPanel />
+      <AnimatePresence>
+        {chatOpen && <CoachChat isOpen={chatOpen} onClose={() => setChatOpen(false)} />}
+      </AnimatePresence>
+      {!chatOpen && view === "dashboard" && <CoachChatButton onClick={() => setChatOpen(true)} />}
       <AnimatePresence mode="wait">
         {view === "recovery" && (
           <MomentumRecovery key="recovery" daysAway={daysAway} userName={user.name} onContinue={() => setView("dashboard")} />
