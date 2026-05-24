@@ -32,6 +32,15 @@ export default function Home() {
         if (session) {
           console.log("[Momentum Auth] Session found:", session.user.email);
 
+          // Check local first — user may have onboarded on this device before
+          const localAfterAuth = getUser();
+          if (localAfterAuth?.onboardingComplete) {
+            setView("app");
+            fullSync();
+            setIsLoading(false);
+            return;
+          }
+
           // Try to get profile from cloud
           const cloudProfile = await syncProfileFromCloud();
           if (cloudProfile?.onboardingComplete) {

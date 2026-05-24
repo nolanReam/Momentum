@@ -5,21 +5,21 @@
 @layer base {
   :root {
     --background: 230 15% 8%;
-    --foreground: 210 20% 92%;
+    --foreground: 0 0% 95%;
     --card: 230 15% 11%;
-    --card-foreground: 210 20% 92%;
+    --card-foreground: 0 0% 95%;
     --primary: 255 75% 65%;
     --primary-foreground: 0 0% 100%;
     --secondary: 230 12% 16%;
-    --secondary-foreground: 210 20% 85%;
+    --secondary-foreground: 0 0% 88%;
     --muted: 230 12% 16%;
-    --muted-foreground: 220 10% 55%;
+    --muted-foreground: 220 10% 65%;
     --accent: 170 55% 50%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 230 12% 18%;
-    --input: 230 12% 18%;
+    --border: 230 12% 20%;
+    --input: 230 12% 20%;
     --ring: 255 75% 65%;
     --radius: 0.875rem;
   }
@@ -36,6 +36,12 @@
   }
   h1, h2, h3 {
     letter-spacing: -0.025em;
+  }
+  input, textarea, select {
+    color: hsl(var(--foreground));
+  }
+  input::placeholder, textarea::placeholder {
+    color: hsl(var(--muted-foreground));
   }
 }
 

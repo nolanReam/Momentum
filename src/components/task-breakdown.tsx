@@ -101,6 +101,8 @@ export function TaskBreakdown({ mood, onClose }: TaskBreakdownProps) {
         handleAddStep(index, step);
       }
     });
+    // Close the breakdown popup after adding all tasks
+    setTimeout(() => onClose(), 300);
   };
 
   return (
