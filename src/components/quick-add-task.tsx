@@ -14,9 +14,9 @@ interface QuickAddTaskProps {
 }
 
 const priorities: { value: TaskPriority; label: string; color: string }[] = [
-  { value: "low", label: "Low", color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
-  { value: "medium", label: "Medium", color: "text-amber-600 bg-amber-50 border-amber-200" },
-  { value: "high", label: "High", color: "text-rose-600 bg-rose-50 border-rose-200" },
+  { value: "low", label: "Low", color: "text-emerald-400 bg-emerald-950 border-emerald-700" },
+  { value: "medium", label: "Medium", color: "text-amber-400 bg-amber-950 border-amber-700" },
+  { value: "high", label: "High", color: "text-rose-400 bg-rose-950 border-rose-700" },
 ];
 
 export function QuickAddTask({ onClose, onAdded }: QuickAddTaskProps) {
@@ -48,10 +48,10 @@ export function QuickAddTask({ onClose, onAdded }: QuickAddTaskProps) {
       initial={{ opacity: 0, y: -10, height: 0 }}
       animate={{ opacity: 1, y: 0, height: "auto" }}
       exit={{ opacity: 0, y: -10, height: 0 }}
-      className="bg-white rounded-2xl border border-black/[0.06] p-5 shadow-glow mb-4"
+      className="bg-card rounded-2xl border border-border p-5 shadow-glow mb-4"
     >
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold">Quick Add</h3>
+        <h3 className="text-sm font-semibold text-foreground">Quick Add</h3>
         <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
           <X className="h-4 w-4" />
         </button>
@@ -64,7 +64,7 @@ export function QuickAddTask({ onClose, onAdded }: QuickAddTaskProps) {
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
           placeholder="What do you need to do?"
-          className="w-full px-4 py-2.5 rounded-xl border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="w-full px-4 py-2.5 rounded-xl border border-border bg-secondary text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
           autoFocus
         />
 
@@ -79,7 +79,7 @@ export function QuickAddTask({ onClose, onAdded }: QuickAddTaskProps) {
                   onClick={() => setPriority(p.value)}
                   className={cn(
                     "px-2 py-0.5 rounded-md text-[11px] font-medium border transition-all",
-                    priority === p.value ? p.color : "text-muted-foreground bg-transparent border-transparent hover:bg-muted"
+                    priority === p.value ? p.color : "text-muted-foreground bg-transparent border-transparent hover:bg-secondary"
                   )}
                 >
                   {p.label}
@@ -96,7 +96,7 @@ export function QuickAddTask({ onClose, onAdded }: QuickAddTaskProps) {
               value={estimatedMinutes}
               onChange={(e) => setEstimatedMinutes(e.target.value)}
               placeholder="min"
-              className="w-14 px-2 py-0.5 rounded-md border text-[11px] text-center focus:outline-none focus:ring-1 focus:ring-primary/30"
+              className="w-14 px-2 py-0.5 rounded-md border border-border bg-secondary text-foreground text-[11px] text-center placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/30"
             />
           </div>
         </div>
