@@ -135,7 +135,7 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
               </div>
               <p className="text-sm text-muted-foreground mb-3">I need to study for my chemistry final but I can&apos;t start...</p>
               <div className="bg-secondary rounded-xl p-4 space-y-3">
-                <p className="text-xs font-medium text-foreground/70 mb-2">
+                <p className="text-xs font-medium text-foreground mb-2">
                   Let&apos;s make this manageable. Start here:
                 </p>
                 {[
@@ -154,9 +154,9 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
                       <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                         <span className="text-[10px] font-bold text-primary">{i + 1}</span>
                       </div>
-                      <span className="text-[13px] text-foreground/80">{item.step}</span>
+                      <span className="text-[13px] text-foreground">{item.step}</span>
                     </div>
-                    <span className="text-[11px] text-muted-foreground/60 flex-shrink-0">{item.time}</span>
+                    <span className="text-[11px] text-muted-foreground flex-shrink-0">{item.time}</span>
                   </motion.div>
                 ))}
                 <motion.p
@@ -203,7 +203,7 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
                 <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <Check className="h-3 w-3 text-primary" />
                 </div>
-                <span className="text-[14px] text-foreground/80 leading-relaxed">{item}</span>
+                <span className="text-[14px] text-foreground leading-relaxed">{item}</span>
               </motion.div>
             ))}
           </div>
@@ -237,7 +237,7 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
                 transition={{ delay: i * 0.1 }}
                 className="bg-card rounded-2xl border border-border p-6 shadow-sm hover:shadow-warm transition-shadow duration-300"
               >
-                <p className="text-[13.5px] leading-relaxed text-foreground/70 mb-5">
+                <p className="text-[13.5px] leading-relaxed text-foreground mb-5">
                   &ldquo;{story.text}&rdquo;
                 </p>
                 <div>

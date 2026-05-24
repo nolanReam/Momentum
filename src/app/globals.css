@@ -13,7 +13,7 @@
     --secondary: 230 12% 16%;
     --secondary-foreground: 0 0% 88%;
     --muted: 230 12% 16%;
-    --muted-foreground: 220 10% 65%;
+    --muted-foreground: 220 15% 75%;
     --accent: 170 55% 50%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 72% 55%;
@@ -42,6 +42,10 @@
   }
   input::placeholder, textarea::placeholder {
     color: hsl(var(--muted-foreground));
+    opacity: 1;
+  }
+  .text-muted-foreground {
+    color: hsl(var(--muted-foreground)) !important;
   }
 }
 

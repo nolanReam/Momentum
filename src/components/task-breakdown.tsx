@@ -235,7 +235,7 @@ export function TaskBreakdown({ mood, onClose }: TaskBreakdownProps) {
                       <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-medium">{step.title}</h4>
                         <p className="text-xs text-muted-foreground mt-1">{step.description}</p>
-                        <p className="text-xs text-primary/70 mt-1.5 italic">💡 {step.tip}</p>
+                        <p className="text-xs text-primary mt-1.5 italic">💡 {step.tip}</p>
                         <div className="flex items-center gap-3 mt-2">
                           <span className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Clock className="h-3 w-3" />
@@ -264,7 +264,7 @@ export function TaskBreakdown({ mood, onClose }: TaskBreakdownProps) {
                   transition={{ delay: steps.length * 0.1 + 0.3 }}
                   className="text-center p-4 rounded-xl bg-primary/5 border border-primary/10"
                 >
-                  <p className="text-sm text-foreground/70">✨ {encouragement}</p>
+                  <p className="text-sm text-foreground">✨ {encouragement}</p>
                 </motion.div>
               )}
             </div>

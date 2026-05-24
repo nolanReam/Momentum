@@ -105,7 +105,7 @@ export function TaskList({ tasks, onStartFocus, onRefresh }: TaskListProps) {
                           {task.estimated_minutes} min
                         </span>
                       )}
-                      <span className="text-xs text-primary/70 font-medium">
+                      <span className="text-xs text-primary font-medium">
                         +{task.xp_reward} XP
                       </span>
                     </div>

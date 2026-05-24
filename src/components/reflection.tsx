@@ -183,7 +183,7 @@ export function Reflection({ taskTitle, xpEarned, onComplete, onSkip }: Reflecti
               className="text-center space-y-4"
             >
               {aiResponse && (
-                <p className="text-sm text-foreground/80 leading-relaxed p-4 rounded-xl bg-primary/5 border border-primary/10">
+                <p className="text-sm text-foreground leading-relaxed p-4 rounded-xl bg-primary/5 border border-primary/10">
                   ✨ {aiResponse}
                 </p>
               )}

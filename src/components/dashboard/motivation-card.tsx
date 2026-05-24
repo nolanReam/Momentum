@@ -82,7 +82,7 @@ export function MotivationCard({ userName }: MotivationCardProps) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -5 }}
           transition={{ duration: 0.3 }}
-          className="mt-3 text-sm leading-relaxed text-foreground/80"
+          className="mt-3 text-sm leading-relaxed text-foreground"
         >
           {messages[messageIndex >= 0 ? messageIndex : 0]}
         </motion.p>
