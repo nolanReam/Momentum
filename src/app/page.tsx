@@ -17,8 +17,12 @@ export default function Home() {
 
   useEffect(() => {
     async function init() {
+      console.log("[Momentum Init] Starting...");
+
       // Check if user is already set up locally with completed onboarding
       const localUser = getUser();
+      console.log("[Momentum Init] Local user:", localUser ? { name: localUser.name, onboarded: localUser.onboardingComplete } : "none");
+
       if (localUser?.onboardingComplete) {
         setView("app");
         if (isSupabaseConfigured()) fullSync();
@@ -29,12 +33,13 @@ export default function Home() {
       // Check if authenticated via Supabase (returning from OAuth redirect)
       if (isSupabaseConfigured()) {
         const session = await getSession();
-        if (session) {
-          console.log("[Momentum Auth] Session found:", session.user.email);
+        console.log("[Momentum Init] Session:", session ? session.user.email : "none");
 
+        if (session) {
           // Check local first — user may have onboarded on this device before
           const localAfterAuth = getUser();
           if (localAfterAuth?.onboardingComplete) {
+            console.log("[Momentum Init] Local profile found after auth — going to app");
             setView("app");
             fullSync();
             setIsLoading(false);
@@ -43,15 +48,18 @@ export default function Home() {
 
           // Try to get profile from cloud
           const cloudProfile = await syncProfileFromCloud();
+          console.log("[Momentum Init] Cloud profile:", cloudProfile ? { name: cloudProfile.name, onboarded: cloudProfile.onboardingComplete } : "none");
+
           if (cloudProfile?.onboardingComplete) {
             // User already completed onboarding on another device
+            console.log("[Momentum Init] Cloud profile onboarded — going to app");
             setView("app");
             setIsLoading(false);
             return;
           }
 
           // User is authenticated but hasn't completed onboarding
-          // Skip the auth step in onboarding (they're already signed in)
+          console.log("[Momentum Init] Authenticated but not onboarded — showing onboarding");
           setSkipAuthStep(true);
           setView("onboarding");
           setIsLoading(false);
@@ -59,6 +67,7 @@ export default function Home() {
         }
       }
 
+      console.log("[Momentum Init] No session, no local user — showing landing");
       setIsLoading(false);
     }
 

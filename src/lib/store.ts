@@ -196,6 +196,7 @@ export function createUser(name: string, preferences: UserProfile["preferences"]
     preferences,
   };
   saveUser(user);
+  console.log("[Momentum] User created:", { name, preferences });
   return user;
 }
 
@@ -317,37 +318,91 @@ function dbToProfile(db: DbProfile): UserProfile {
 // Pull latest profile from Supabase
 export async function syncProfileFromCloud(): Promise<UserProfile | null> {
   const supabase = getSupabase();
-  if (!supabase) return null;
+  if (!supabase) {
+    console.log("[Momentum Sync] No Supabase client — skipping cloud sync");
+    return null;
+  }
 
   const authId = await getAuthUserId();
-  if (!authId) return null;
+  if (!authId) {
+    console.log("[Momentum Sync] No auth user — skipping cloud sync");
+    return null;
+  }
 
   try {
+    console.log("[Momentum Sync] Fetching profile from cloud for user:", authId.slice(0, 8) + "...");
+
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", authId)
       .single();
 
-    if (error || !data) return null;
+    if (error) {
+      console.log("[Momentum Sync] Profile fetch error:", error.message, error.code);
+
+      // If profile doesn't exist (PGRST116 = no rows), check if we have local data to push
+      if (error.code === "PGRST116") {
+        console.log("[Momentum Sync] No profile in cloud — checking local...");
+        const localUser = getUser();
+        if (localUser?.onboardingComplete) {
+          // Push local profile to cloud
+          console.log("[Momentum Sync] Pushing local profile to cloud...");
+          await syncProfileToCloud(localUser);
+          return localUser;
+        }
+
+        // No local profile either — try to create from auth metadata
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser) {
+          const name = authUser.user_metadata?.name
+            || authUser.user_metadata?.full_name
+            || authUser.email?.split("@")[0]
+            || "Friend";
+          console.log("[Momentum Sync] Creating profile from auth metadata:", name);
+
+          // Try to insert the profile
+          await supabase.from("profiles").upsert({
+            id: authId,
+            name,
+            xp: 0,
+            streak: 1,
+            longest_streak: 1,
+            level: 1,
+            last_active: new Date().toISOString(),
+            onboarding_complete: false,
+            preferences: {},
+          });
+        }
+        return null;
+      }
+      return null;
+    }
+
+    if (!data) return null;
 
     const profile = dbToProfile(data as DbProfile);
+    console.log("[Momentum Sync] Cloud profile found:", { name: profile.name, onboarded: profile.onboardingComplete, xp: profile.xp });
+
     // Merge: use cloud data but keep local if more recent
     const localUser = getUser();
-    if (localUser) {
+    if (localUser && localUser.onboardingComplete) {
       const localDate = new Date(localUser.lastActive).getTime();
       const cloudDate = new Date(profile.lastActive).getTime();
       if (localDate > cloudDate) {
         // Local is newer — push to cloud
+        console.log("[Momentum Sync] Local is newer — pushing to cloud");
         syncProfileToCloud(localUser);
         return localUser;
       }
     }
 
     // Cloud is newer or no local — use cloud
+    console.log("[Momentum Sync] Using cloud profile");
     localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(profile));
     return profile;
-  } catch {
+  } catch (e) {
+    console.error("[Momentum Sync] syncProfileFromCloud error:", e);
     return null;
   }
 }
