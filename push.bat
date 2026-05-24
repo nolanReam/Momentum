@@ -1,4 +1,4 @@
 @echo off
 git add -A
-git commit -m "feat: add email/password + Google auth form, dark mode, fix Supabase URL"
+git commit -m "fix: skip auth step after Google OAuth redirect, go straight to onboarding preferences"
 git push origin main

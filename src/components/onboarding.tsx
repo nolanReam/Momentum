@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 
 interface OnboardingProps {
   onComplete: () => void;
+  skipAuth?: boolean;
 }
 
 interface StepData {
@@ -44,7 +45,7 @@ const stressLevels = [
   { value: "crisis", label: "In crisis mode", color: "bg-red-100 border-red-300 text-red-700" },
 ];
 
-export function Onboarding({ onComplete }: OnboardingProps) {
+export function Onboarding({ onComplete, skipAuth }: OnboardingProps) {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<StepData>({
     name: "",
@@ -54,7 +55,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
     stressLevel: "",
   });
 
-  const hasAuth = isSupabaseConfigured();
+  const hasAuth = isSupabaseConfigured() && !skipAuth;
   const totalSteps = hasAuth ? 6 : 5;
   const contentStep = hasAuth ? step - 1 : step;
   const progress = ((step + 1) / totalSteps) * 100;

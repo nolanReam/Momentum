@@ -5,7 +5,7 @@ import { AnimatePresence } from "framer-motion";
 import { LandingPage } from "@/components/landing-page";
 import { Onboarding } from "@/components/onboarding";
 import { AppShell } from "@/components/app-shell";
-import { getUser, getSession, fullSync } from "@/lib/store";
+import { getUser, getSession, fullSync, syncProfileFromCloud } from "@/lib/store";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
 type AppView = "landing" | "onboarding" | "app";
@@ -13,35 +13,37 @@ type AppView = "landing" | "onboarding" | "app";
 export default function Home() {
   const [view, setView] = useState<AppView>("landing");
   const [isLoading, setIsLoading] = useState(true);
+  const [skipAuthStep, setSkipAuthStep] = useState(false);
 
   useEffect(() => {
     async function init() {
-      // Check if user is already set up locally
+      // Check if user is already set up locally with completed onboarding
       const localUser = getUser();
       if (localUser?.onboardingComplete) {
         setView("app");
-        // Background sync if Supabase configured
-        if (isSupabaseConfigured()) {
-          fullSync();
-        }
+        if (isSupabaseConfigured()) fullSync();
         setIsLoading(false);
         return;
       }
 
-      // Check if authenticated via Supabase (returning from OAuth)
+      // Check if authenticated via Supabase (returning from OAuth redirect)
       if (isSupabaseConfigured()) {
         const session = await getSession();
         if (session) {
-          // User authenticated but hasn't onboarded yet
-          // Or sync profile from cloud
-          const { syncProfileFromCloud } = await import("@/lib/store");
+          console.log("[Momentum Auth] Session found:", session.user.email);
+
+          // Try to get profile from cloud
           const cloudProfile = await syncProfileFromCloud();
           if (cloudProfile?.onboardingComplete) {
+            // User already completed onboarding on another device
             setView("app");
             setIsLoading(false);
             return;
           }
-          // Authenticated but needs onboarding
+
+          // User is authenticated but hasn't completed onboarding
+          // Skip the auth step in onboarding (they're already signed in)
+          setSkipAuthStep(true);
           setView("onboarding");
           setIsLoading(false);
           return;
@@ -56,7 +58,7 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center gradient-calm">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-5">
           <img
             src="/momentum.png"
@@ -88,6 +90,7 @@ export default function Home() {
         <Onboarding
           key="onboarding"
           onComplete={() => setView("app")}
+          skipAuth={skipAuthStep}
         />
       )}
       {view === "app" && (
