@@ -46,7 +46,7 @@ export function AIDevPanel() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-4 right-4 z-50 w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+        className="fixed bottom-4 left-4 z-50 w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
         title="AI Dev Panel"
       >
         <Code2 className="h-4 w-4" />
@@ -58,12 +58,12 @@ export function AIDevPanel() {
     <>
       {/* Toggle button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-4 right-4 z-50 w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
-        title="AI Dev Panel"
-      >
-        <Code2 className="h-4 w-4" />
-      </button>
+      onClick={() => setIsOpen(!isOpen)}
+      className="fixed bottom-4 left-4 z-50 w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+      title="AI Dev Panel"
+    >
+      <Code2 className="h-4 w-4" />
+    </button>
 
       {/* Panel */}
       <AnimatePresence>
@@ -72,7 +72,7 @@ export function AIDevPanel() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-16 right-4 z-50 w-80 max-h-[60vh] bg-gray-900 text-gray-100 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden"
+            className="fixed bottom-16 left-4 z-50 w-80 max-h-[60vh] bg-gray-900 text-gray-100 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden"
           >
             {/* Header */}
             <div className="px-4 py-3 border-b border-gray-700 flex items-center justify-between">
