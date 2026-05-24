@@ -48,11 +48,15 @@ export function AppShell({ onLogout }: AppShellProps) {
     }
 
     setIsOnline(typeof navigator !== "undefined" ? navigator.onLine : true);
-    const handleOnline = () => { setIsOnline(true); if (isSupabaseConfigured()) fullSync(); };
+    const handleOnline = () => { setIsOnline(true); if (isSupabaseConfigured()) fullSync().then(() => refreshUser()); };
     const handleOffline = () => { setIsOnline(false); };
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
-    if (isSupabaseConfigured()) processSyncQueue();
+    if (isSupabaseConfigured()) {
+      processSyncQueue();
+      // Sync tasks from cloud on load
+      fullSync().then(() => refreshUser());
+    }
     return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
   }, []);
 

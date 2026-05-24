@@ -27,7 +27,7 @@ export function Dashboard({ user, onStartFocus, onBreakdown, onSettings, onRefre
 
   useEffect(() => {
     setTasks(getTasks());
-  }, []);
+  }, [user]);
 
   const refreshTasks = () => {
     setTasks(getTasks());

@@ -557,15 +557,33 @@ export async function syncTasksFromCloud(): Promise<Task[]> {
   if (!authId) return getTasks();
 
   try {
+    console.log("[Momentum Sync] Fetching tasks from cloud...");
     const { data, error } = await supabase
       .from("tasks")
       .select("*")
       .eq("user_id", authId)
       .order("created_at", { ascending: true });
 
-    if (error || !data) return getTasks();
+    if (error) {
+      console.log("[Momentum Sync] Tasks fetch error:", error.message);
+      return getTasks();
+    }
+
+    if (!data || data.length === 0) {
+      console.log("[Momentum Sync] No tasks in cloud — checking local...");
+      // Push any local tasks to cloud
+      const localTasks = getTasks();
+      if (localTasks.length > 0) {
+        console.log(`[Momentum Sync] Pushing ${localTasks.length} local tasks to cloud...`);
+        for (const task of localTasks) {
+          syncTaskToCloud(task, "insert");
+        }
+      }
+      return localTasks;
+    }
 
     const cloudTasks = (data as DbTask[]).map(dbToTask);
+    console.log(`[Momentum Sync] Found ${cloudTasks.length} tasks in cloud`);
 
     // Merge: keep local tasks that aren't in cloud, add cloud tasks
     const localTasks = getTasks();
@@ -573,14 +591,19 @@ export async function syncTasksFromCloud(): Promise<Task[]> {
     const localOnly = localTasks.filter((t) => !cloudIds.has(t.id));
 
     // Push local-only tasks to cloud
-    for (const task of localOnly) {
-      syncTaskToCloud(task, "insert");
+    if (localOnly.length > 0) {
+      console.log(`[Momentum Sync] Pushing ${localOnly.length} local-only tasks to cloud...`);
+      for (const task of localOnly) {
+        syncTaskToCloud(task, "insert");
+      }
     }
 
     const merged = [...cloudTasks, ...localOnly];
     saveTasks(merged);
+    console.log(`[Momentum Sync] Tasks synced: ${merged.length} total`);
     return merged;
-  } catch {
+  } catch (e) {
+    console.error("[Momentum Sync] syncTasksFromCloud error:", e);
     return getTasks();
   }
 }

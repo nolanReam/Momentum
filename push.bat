@@ -1,4 +1,4 @@
 @echo off
 git add -A
-git commit -m "fix: robust cloud profile sync - handle missing profiles, add logging, persist onboarding state"
+git commit -m "fix: persist tasks to cloud, reload after sync, fix settings input contrast"
 git push origin main

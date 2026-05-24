@@ -93,7 +93,7 @@ export function Settings({ onClose, onLogout }: SettingsProps) {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="flex-1 px-3 py-2 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  className="flex-1 px-3 py-2 rounded-xl border border-border bg-secondary text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
                 <Button size="sm" onClick={handleSave} disabled={name === user.name}>
                   {saved ? "Saved!" : "Save"}
@@ -152,7 +152,7 @@ export function Settings({ onClose, onLogout }: SettingsProps) {
                 type="text"
                 value={user.preferences.currentGoal}
                 onChange={(e) => handlePreferenceChange("currentGoal", e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full px-3 py-2 rounded-xl border border-border bg-secondary text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
           </div>
@@ -200,7 +200,7 @@ function PreferenceSelect({ label, value, onChange, options }: {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-xl border text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary/30"
+        className="w-full px-3 py-2 rounded-xl border border-border text-sm bg-secondary text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>{opt.label}</option>
