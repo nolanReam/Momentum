@@ -228,7 +228,9 @@ export function addXP(amount: number): UserProfile | null {
 
   user.lastActive = new Date().toISOString();
   saveUser(user);
+  console.log("[Momentum] XP added:", { amount, totalXP: user.xp, level: user.level, streak: user.streak });
   return user;
+}
 }
 
 function calculateLevel(xp: number): number {
@@ -430,7 +432,7 @@ export function addTask(task: Omit<Task, "id" | "created_at" | "completed_at">):
   const tasks = getTasks();
   const newTask: Task = {
     ...task,
-    id: `task-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    id: crypto.randomUUID(),
     created_at: new Date().toISOString(),
     completed_at: null,
   };
@@ -474,6 +476,20 @@ async function syncTaskToCloud(task: Task, operation: "insert" | "update"): Prom
     return;
   }
 
+  // Ensure task ID is a valid UUID (old tasks may have non-UUID IDs)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(task.id)) {
+    console.log(`[Momentum Sync] Task "${task.title.slice(0, 20)}..." has non-UUID id, generating new one`);
+    task.id = crypto.randomUUID();
+    // Update local storage with new ID
+    const tasks = getTasks();
+    const idx = tasks.findIndex(t => t.title === task.title && t.created_at === task.created_at);
+    if (idx !== -1) {
+      tasks[idx].id = task.id;
+      saveTasks(tasks);
+    }
+  }
+
   try {
     const dbTask = taskToDb(task, authId);
     if (operation === "insert") {
@@ -492,8 +508,8 @@ async function syncTaskToCloud(task: Task, operation: "insert" | "update"): Prom
       if (error) throw error;
     }
     console.log(`[Momentum Sync] Task ${operation}: "${task.title.slice(0, 30)}..." ✓`);
-  } catch (e) {
-    console.warn(`[Momentum Sync] Task ${operation} failed — queued:`, e);
+  } catch (e: any) {
+    console.warn(`[Momentum Sync] Task ${operation} failed:`, e?.message || e);
     addToSyncQueue({ table: "tasks", operation, data: taskToDb(task, authId || "") });
   }
 }
