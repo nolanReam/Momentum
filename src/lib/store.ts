@@ -231,7 +231,6 @@ export function addXP(amount: number): UserProfile | null {
   console.log("[Momentum] XP added:", { amount, totalXP: user.xp, level: user.level, streak: user.streak });
   return user;
 }
-}
 
 function calculateLevel(xp: number): number {
   const baseXP = 100;
