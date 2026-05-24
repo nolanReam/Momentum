@@ -77,16 +77,6 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           >
-            {/* Logo mark */}
-            <motion.img
-              src="/momentum.png"
-              alt=""
-              className="w-14 h-14 mx-auto mb-8 rounded-2xl shadow-warm"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2, duration: 0.5, type: "spring", stiffness: 200 }}
-            />
-
             {/* Emotional headline */}
             <h1 className="text-[2.75rem] sm:text-[3.5rem] md:text-[4rem] font-bold tracking-tight leading-[1.08] mb-6">
               You know you should start.
