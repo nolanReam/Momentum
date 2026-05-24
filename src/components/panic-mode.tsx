@@ -26,9 +26,9 @@ interface PanicModeProps {
 }
 
 const priorityConfig: Record<string, { label: string; color: string }> = {
-  critical: { label: "Do First", color: "border-l-rose-400 bg-rose-50/50" },
-  important: { label: "Important", color: "border-l-amber-400 bg-amber-50/50" },
-  if_time: { label: "If Time", color: "border-l-blue-400 bg-blue-50/50" },
+  critical: { label: "Do First", color: "border-l-rose-400 bg-rose-950/40" },
+  important: { label: "Important", color: "border-l-amber-400 bg-amber-950/40" },
+  if_time: { label: "If Time", color: "border-l-blue-400 bg-blue-950/40" },
 };
 
 export function PanicMode({ onClose }: PanicModeProps) {
@@ -94,10 +94,10 @@ export function PanicMode({ onClose }: PanicModeProps) {
       animate={{ opacity: 1, y: 0 }}
       className="w-full max-w-2xl mx-auto"
     >
-      <div className="glass-strong rounded-2xl shadow-glow-lg overflow-hidden">
-        <div className="p-6 pb-4 border-b border-border/50 bg-gradient-to-r from-rose-50 to-orange-50">
+      <div className="bg-card rounded-2xl border border-border shadow-glow-lg overflow-hidden">
+        <div className="p-6 pb-4 border-b border-border bg-rose-950/30">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-rose-100">
+            <div className="p-2 rounded-xl bg-rose-900/50">
               <AlertTriangle className="h-5 w-5 text-rose-600" />
             </div>
             <div>
@@ -119,9 +119,9 @@ export function PanicMode({ onClose }: PanicModeProps) {
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-4"
               >
-                <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border border-blue-100">
-                  <Shield className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-xs text-blue-700">
+                <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-950/30 border border-blue-800">
+                  <Shield className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-blue-300">
                     You&apos;re not the first student to be here. Let&apos;s focus on what&apos;s possible, not what&apos;s perfect.
                   </p>
                 </div>
@@ -188,11 +188,11 @@ export function PanicMode({ onClose }: PanicModeProps) {
                 exit={{ opacity: 0, x: -20 }}
                 className="space-y-4"
               >
-                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
-                  <p className="text-sm text-emerald-700 font-medium">
+                <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800">
+                  <p className="text-sm text-emerald-300 font-medium">
                     {plan.reassurance}
                   </p>
-                  <p className="text-xs text-emerald-600/70 mt-1">
+                  <p className="text-xs text-emerald-400/70 mt-1">
                     {plan.realistic_assessment}
                   </p>
                 </div>
@@ -226,7 +226,7 @@ export function PanicMode({ onClose }: PanicModeProps) {
                         transition={{ delay: index * 0.1 }}
                         className={cn(
                           "rounded-xl border-l-4 p-4 transition-all",
-                          addedSteps.has(index) ? "bg-emerald-50/50 border-l-emerald-400" : config.color
+                          addedSteps.has(index) ? "bg-emerald-950/40 border-l-emerald-400" : config.color
                         )}
                       >
                         <div className="flex items-start justify-between gap-3">
