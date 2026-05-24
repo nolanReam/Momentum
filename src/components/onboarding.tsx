@@ -112,12 +112,11 @@ export function Onboarding({ onComplete }: OnboardingProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden"
-      style={{ background: "linear-gradient(165deg, #f8f7ff 0%, #f3f1ff 30%, #eef9fb 70%, #f7fafb 100%)" }}
+      className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden bg-background"
     >
       {/* Soft ambient */}
-      <div className="absolute top-[20%] left-[10%] w-[350px] h-[350px] rounded-full bg-purple-200/15 blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[20%] right-[10%] w-[300px] h-[300px] rounded-full bg-teal-200/10 blur-[100px] pointer-events-none" />
+      <div className="absolute top-[20%] left-[10%] w-[350px] h-[350px] rounded-full bg-purple-500/5 blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[20%] right-[10%] w-[300px] h-[300px] rounded-full bg-teal-500/5 blur-[100px] pointer-events-none" />
 
       <div className="w-full max-w-md relative z-10">
         {/* Logo + Progress */}
@@ -394,7 +393,7 @@ function StepContainer({ children }: { children: React.ReactNode }) {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -30 }}
       transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="bg-white rounded-2xl p-8 border border-black/[0.06] shadow-glow"
+      className="bg-card rounded-2xl p-8 border border-border shadow-glow"
     >
       {children}
     </motion.div>

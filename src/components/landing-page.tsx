@@ -36,9 +36,9 @@ const capabilities = [
 
 export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
   return (
-    <div className="min-h-screen overflow-hidden bg-[#faf9ff]">
+    <div className="min-h-screen overflow-hidden bg-background">
       {/* Navbar */}
-      <nav className="fixed top-0 w-full z-50 bg-white/70 backdrop-blur-xl border-b border-black/[0.04]">
+      <nav className="fixed top-0 w-full z-50 bg-card/70 backdrop-blur-xl border-b border-border">
         <div className="max-w-5xl mx-auto px-6 py-3.5 flex items-center justify-between">
           <motion.div
             className="flex items-center gap-2.5"
@@ -68,8 +68,8 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
       {/* Hero */}
       <section className="relative min-h-[92vh] flex items-center justify-center px-6 pt-16">
         {/* Soft ambient light */}
-        <div className="absolute top-[20%] left-[15%] w-[400px] h-[400px] rounded-full bg-purple-200/20 blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-[20%] right-[15%] w-[350px] h-[350px] rounded-full bg-teal-200/15 blur-[100px] pointer-events-none" />
+        <div className="absolute top-[20%] left-[15%] w-[400px] h-[400px] rounded-full bg-purple-500/5 blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-[20%] right-[15%] w-[350px] h-[350px] rounded-full bg-teal-500/5 blur-[100px] pointer-events-none" />
 
         <div className="relative z-10 max-w-3xl mx-auto text-center">
           <motion.div
@@ -128,13 +128,13 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="bg-white rounded-2xl border border-black/[0.06] p-6 sm:p-8 shadow-glow-lg max-w-md mx-auto text-left">
+            <div className="bg-card rounded-2xl border border-border p-6 sm:p-8 shadow-glow-lg max-w-md mx-auto text-left">
               <div className="flex items-center gap-2.5 mb-5">
                 <img src="/momentum.png" alt="" className="w-6 h-6 rounded-md" />
                 <span className="text-xs font-medium text-muted-foreground">Momentum AI</span>
               </div>
               <p className="text-sm text-muted-foreground mb-3">I need to study for my chemistry final but I can&apos;t start...</p>
-              <div className="bg-[#f8f7ff] rounded-xl p-4 space-y-3">
+              <div className="bg-secondary rounded-xl p-4 space-y-3">
                 <p className="text-xs font-medium text-foreground/70 mb-2">
                   Let&apos;s make this manageable. Start here:
                 </p>
@@ -198,7 +198,7 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.08 }}
-                className="flex items-start gap-3 p-4 rounded-xl bg-white border border-black/[0.04] shadow-sm"
+                className="flex items-start gap-3 p-4 rounded-xl bg-card border border-border shadow-sm"
               >
                 <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <Check className="h-3 w-3 text-primary" />
@@ -211,7 +211,7 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
       </section>
 
       {/* Student stories — real, emotional */}
-      <section className="py-24 px-6 bg-white/50">
+      <section className="py-24 px-6 bg-card/50">
         <div className="max-w-5xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -235,7 +235,7 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="bg-white rounded-2xl border border-black/[0.05] p-6 shadow-sm hover:shadow-warm transition-shadow duration-300"
+                className="bg-card rounded-2xl border border-border p-6 shadow-sm hover:shadow-warm transition-shadow duration-300"
               >
                 <p className="text-[13.5px] leading-relaxed text-foreground/70 mb-5">
                   &ldquo;{story.text}&rdquo;
@@ -279,7 +279,7 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-black/[0.04] py-8 px-6 bg-white/30">
+      <footer className="border-t border-border py-8 px-6 bg-card/30">
         <div className="max-w-5xl mx-auto flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <img src="/momentum.png" alt="Momentum" className="w-5 h-5 rounded" />

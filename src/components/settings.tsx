@@ -71,9 +71,9 @@ export function Settings({ onClose, onLogout }: SettingsProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen gradient-calm"
+      className="min-h-screen bg-background"
     >
-      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-black/[0.04]">
+      <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-xl border-b border-border">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
             <ArrowLeft className="h-4 w-4" />
@@ -178,7 +178,7 @@ export function Settings({ onClose, onLogout }: SettingsProps) {
 
 function Section({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-black/[0.06] p-6">
+    <div className="bg-card rounded-2xl border border-border p-6">
       <div className="flex items-center gap-2 mb-4">
         <Icon className="h-4 w-4 text-primary" />
         <h2 className="font-semibold text-sm">{title}</h2>
@@ -200,7 +200,7 @@ function PreferenceSelect({ label, value, onChange, options }: {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-xl border text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+        className="w-full px-3 py-2 rounded-xl border text-sm bg-card focus:outline-none focus:ring-2 focus:ring-primary/30"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>{opt.label}</option>

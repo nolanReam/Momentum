@@ -37,7 +37,6 @@ export function AppShell({ onLogout }: AppShellProps) {
     const u = getUser();
     setUser(u);
 
-    // Check if user has been away (momentum recovery)
     if (u) {
       const lastActive = new Date(u.lastActive);
       const now = new Date();
@@ -48,190 +47,76 @@ export function AppShell({ onLogout }: AppShellProps) {
       }
     }
 
-    // Track online status
     setIsOnline(typeof navigator !== "undefined" ? navigator.onLine : true);
-    const handleOnline = () => {
-      setIsOnline(true);
-      console.log("[Momentum] Back online — syncing...");
-      if (isSupabaseConfigured()) fullSync();
-    };
-    const handleOffline = () => {
-      setIsOnline(false);
-      console.log("[Momentum] Gone offline — using local storage");
-    };
-
+    const handleOnline = () => { setIsOnline(true); if (isSupabaseConfigured()) fullSync(); };
+    const handleOffline = () => { setIsOnline(false); };
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
-
     if (isSupabaseConfigured()) processSyncQueue();
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
+    return () => { window.removeEventListener("online", handleOnline); window.removeEventListener("offline", handleOffline); };
   }, []);
 
-  const refreshUser = () => {
-    setUser(getUser());
-  };
+  const refreshUser = () => setUser(getUser());
 
-  const handleStartFocus = (task: Task) => {
-    setFocusTask(task);
-    setView("checkin");
-  };
-
-  const handleCheckinComplete = (mood: Mood) => {
-    setCurrentMood(mood);
-    if (focusTask) setView("focus");
-    else setView("dashboard");
-  };
-
-  const handleFocusComplete = (task: Task) => {
-    setCompletedTask(task);
-    refreshUser();
-    setView("reflection");
-  };
-
-  const handleReflectionComplete = () => {
-    setCompletedTask(null);
-    setFocusTask(null);
-    refreshUser();
-    setView("dashboard");
-  };
-
-  const handleLogout = async () => {
-    await signOut();
-    onLogout();
-  };
+  const handleStartFocus = (task: Task) => { setFocusTask(task); setView("checkin"); };
+  const handleCheckinComplete = (mood: Mood) => { setCurrentMood(mood); setView(focusTask ? "focus" : "dashboard"); };
+  const handleFocusComplete = (task: Task) => { setCompletedTask(task); refreshUser(); setView("reflection"); };
+  const handleReflectionComplete = () => { setCompletedTask(null); setFocusTask(null); refreshUser(); setView("dashboard"); };
+  const handleLogout = async () => { await signOut(); onLogout(); };
 
   if (!user) return null;
 
   return (
-    <div className="min-h-screen">
-      {/* AI Dev Panel (floating) */}
+    <div className="min-h-screen bg-background">
       <AIDevPanel />
-
       <AnimatePresence mode="wait">
         {view === "recovery" && (
-          <MomentumRecovery
-            key="recovery"
-            daysAway={daysAway}
-            userName={user.name}
-            onContinue={() => setView("dashboard")}
-          />
+          <MomentumRecovery key="recovery" daysAway={daysAway} userName={user.name} onContinue={() => setView("dashboard")} />
         )}
 
         {view === "settings" && (
-          <Settings
-            key="settings"
-            onClose={() => setView("dashboard")}
-            onLogout={handleLogout}
-          />
+          <Settings key="settings" onClose={() => setView("dashboard")} onLogout={handleLogout} />
         )}
 
         {view === "checkin" && (
-          <motion.div
-            key="checkin"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="min-h-screen flex items-center justify-center p-6"
-            style={{ background: "linear-gradient(165deg, #f8f7ff 0%, #f3f1ff 30%, #eef9fb 70%, #f7fafb 100%)" }}
-          >
-            <EmotionalCheckin
-              onComplete={handleCheckinComplete}
-              onSkip={() => {
-                if (focusTask) setView("focus");
-                else setView("dashboard");
-              }}
-            />
+          <motion.div key="checkin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex items-center justify-center p-6 bg-background">
+            <EmotionalCheckin onComplete={handleCheckinComplete} onSkip={() => setView(focusTask ? "focus" : "dashboard")} />
           </motion.div>
         )}
 
         {view === "breakdown" && (
-          <motion.div
-            key="breakdown"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="min-h-screen flex items-center justify-center p-6"
-            style={{ background: "linear-gradient(165deg, #f8f7ff 0%, #f3f1ff 30%, #eef9fb 70%, #f7fafb 100%)" }}
-          >
-            <TaskBreakdown
-              mood={currentMood}
-              onClose={() => { refreshUser(); setView("dashboard"); }}
-            />
+          <motion.div key="breakdown" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex items-center justify-center p-6 bg-background">
+            <TaskBreakdown mood={currentMood} onClose={() => { refreshUser(); setView("dashboard"); }} />
           </motion.div>
         )}
 
         {view === "focus" && focusTask && (
-          <FocusMode
-            key="focus"
-            task={focusTask}
-            onComplete={handleFocusComplete}
-            onExit={() => setView("dashboard")}
-          />
+          <FocusMode key="focus" task={focusTask} onComplete={handleFocusComplete} onExit={() => setView("dashboard")} />
         )}
 
         {view === "panic" && (
-          <motion.div
-            key="panic"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="min-h-screen flex items-center justify-center p-6"
-            style={{ background: "linear-gradient(165deg, #f8f7ff 0%, #f3f1ff 30%, #eef9fb 70%, #f7fafb 100%)" }}
-          >
+          <motion.div key="panic" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex items-center justify-center p-6 bg-background">
             <PanicMode onClose={() => { refreshUser(); setView("dashboard"); }} />
           </motion.div>
         )}
 
         {view === "reflection" && completedTask && (
-          <motion.div
-            key="reflection"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="min-h-screen flex items-center justify-center p-6"
-            style={{ background: "linear-gradient(165deg, #f8f7ff 0%, #f3f1ff 30%, #eef9fb 70%, #f7fafb 100%)" }}
-          >
-            <Reflection
-              taskTitle={completedTask.title}
-              xpEarned={completedTask.xp_reward}
-              onComplete={handleReflectionComplete}
-              onSkip={handleReflectionComplete}
-            />
+          <motion.div key="reflection" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen flex items-center justify-center p-6 bg-background">
+            <Reflection taskTitle={completedTask.title} xpEarned={completedTask.xp_reward} onComplete={handleReflectionComplete} onSkip={handleReflectionComplete} />
           </motion.div>
         )}
 
         {view === "dashboard" && (
-          <motion.div
-            key="dashboard"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="min-h-screen"
-            style={{ background: "linear-gradient(165deg, #f8f7ff 0%, #f3f1ff 30%, #eef9fb 70%, #f7fafb 100%)" }}
-          >
-            {/* Header */}
-            <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-black/[0.04]">
+          <motion.div key="dashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-screen bg-background">
+            <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-xl border-b border-border">
               <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <img
-                    src="/momentum.png"
-                    alt="Momentum"
-                    className="w-7 h-7 rounded-lg hover:scale-105 transition-transform duration-300"
-                  />
+                  <img src="/momentum.png" alt="Momentum" className="w-7 h-7 rounded-lg hover:scale-105 transition-transform duration-300" />
                   <span className="font-semibold text-[15px]">Momentum</span>
                   <SyncBadge isOnline={isOnline} hasSupabase={isSupabaseConfigured()} />
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setView("panic")}
-                    className="gap-1.5 text-xs border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                  >
+                  <Button variant="outline" size="sm" onClick={() => setView("panic")} className="gap-1.5 text-xs border-red-800 text-red-400 hover:bg-red-950 hover:text-red-300">
                     <AlertTriangle className="h-3.5 w-3.5" />
                     Panic Mode
                   </Button>
@@ -241,14 +126,7 @@ export function AppShell({ onLogout }: AppShellProps) {
                 </div>
               </div>
             </header>
-
-            <Dashboard
-              user={user}
-              onStartFocus={handleStartFocus}
-              onBreakdown={() => setView("breakdown")}
-              onSettings={() => setView("settings")}
-              onRefresh={refreshUser}
-            />
+            <Dashboard user={user} onStartFocus={handleStartFocus} onBreakdown={() => setView("breakdown")} onSettings={() => setView("settings")} onRefresh={refreshUser} />
           </motion.div>
         )}
       </AnimatePresence>

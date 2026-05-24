@@ -1,4 +1,4 @@
 @echo off
 git add -A
-git commit -m "feat: add Quick Add, Settings, AI Dev Panel, Momentum Recovery, personalized AI prompts"
+git commit -m "fix: dark mode theme, fix Supabase URL, add Groq init logging, fix duplicate classNames"
 git push origin main

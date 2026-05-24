@@ -1,8 +1,16 @@
 import Groq from "groq-sdk";
 
-const groq = process.env.GROQ_API_KEY
-  ? new Groq({ apiKey: process.env.GROQ_API_KEY })
-  : null;
+const GROQ_KEY = process.env.GROQ_API_KEY;
+const groq = GROQ_KEY ? new Groq({ apiKey: GROQ_KEY }) : null;
+
+// Log initialization status
+if (typeof process !== "undefined") {
+  if (groq) {
+    console.log("[Momentum AI] ✓ Groq client initialized with key:", GROQ_KEY?.slice(0, 8) + "...");
+  } else {
+    console.log("[Momentum AI] ✗ No GROQ_API_KEY found in environment. Using fallback responses.");
+  }
+}
 
 const MODEL = "llama-3.3-70b-versatile";
 const MAX_RETRIES = 2;

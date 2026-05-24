@@ -15,8 +15,7 @@ export function MomentumRecovery({ daysAway, userName, onContinue }: MomentumRec
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen flex items-center justify-center p-6"
-      style={{ background: "linear-gradient(165deg, #f8f7ff 0%, #f3f1ff 30%, #eef9fb 70%, #f7fafb 100%)" }}
+      className="min-h-screen flex items-center justify-center p-6 bg-background"
     >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
