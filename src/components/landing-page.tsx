@@ -66,7 +66,7 @@ export function LandingPage({ onGetStarted, onSignIn }: LandingPageProps) {
       </nav>
 
       {/* Hero */}
-      <section className="relative min-h-[92vh] flex items-center justify-center px-6 pt-16">
+      <section className="relative min-h-[92vh] flex items-center justify-center px-6 pt-28">
         {/* Soft ambient light */}
         <div className="absolute top-[20%] left-[15%] w-[400px] h-[400px] rounded-full bg-purple-500/5 blur-[100px] pointer-events-none" />
         <div className="absolute bottom-[20%] right-[15%] w-[350px] h-[350px] rounded-full bg-teal-500/5 blur-[100px] pointer-events-none" />
